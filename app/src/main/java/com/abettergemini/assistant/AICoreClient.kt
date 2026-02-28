@@ -102,13 +102,34 @@ class AICoreClient(private val context: Context) {
         downloadProgress = 0
         Log.d(TAG, "Downloading Gemini Nano model to internal storage...")
         
-        // Google's MediaPipe Studio officially hosts this public, un-gated endpoint 
-        val modelUrl = java.net.URL("https://storage.googleapis.com/jmstore/Kaggle/gemma-2b-it-cpu-int4.bin") 
+        // HuggingFace open-source mirror for MediaPipe .bin layout
+        var currentUrl = java.net.URL("https://huggingface.co/ASahu16/gemma/resolve/main/gemma-2b-it-cpu-int4.bin") 
+        var connection = currentUrl.openConnection() as java.net.HttpURLConnection
+        connection.instanceFollowRedirects = false
         
         try {
-            val connection = modelUrl.openConnection() as java.net.HttpURLConnection
-            connection.instanceFollowRedirects = true
-            connection.connect()
+            var redirects = 0
+            while (true) {
+                connection.connect()
+                val code = connection.responseCode
+                if (code == java.net.HttpURLConnection.HTTP_MOVED_PERM || 
+                    code == java.net.HttpURLConnection.HTTP_MOVED_TEMP || 
+                    code == java.net.HttpURLConnection.HTTP_SEE_OTHER ||
+                    code == 307 || code == 308) {
+                    
+                    val location = connection.getHeaderField("Location")
+                    currentUrl = java.net.URL(currentUrl, location)
+                    connection.disconnect()
+                    
+                    connection = currentUrl.openConnection() as java.net.HttpURLConnection
+                    connection.instanceFollowRedirects = false
+                    
+                    redirects++
+                    if (redirects > 10) throw Exception("Too many redirects during model payload resolution")
+                } else {
+                    break
+                }
+            }
             
             if (connection.responseCode != java.net.HttpURLConnection.HTTP_OK) {
                 throw Exception("HTTP Error " + connection.responseCode)
