@@ -1,10 +1,10 @@
 {
     "logs": [
         {
-            "outputFile": "com.openclaw.assistant.app-mergeDebugResources-33:/values-h550dp-port-v13/values-h550dp-port-v13.xml",
+            "outputFile": "com.abettergemini.assistant.app-mergeDebugResources-33:/values-h550dp-port-v13/values-h550dp-port-v13.xml",
             "map": [
                 {
-                    "source": "/home/fen/.gradle/caches/9.0-milestone-1/transforms/91aeebf93bbc85abf5317b7c8304cd8e/transformed/material-1.11.0/res/values-h550dp-port-v13/values-h550dp-port-v13.xml",
+                    "source": "/Users/fen/.gradle/caches/9.0-milestone-1/transforms/facf0ac7aa2a3c2ec27b24e04bca79d1/transformed/material-1.11.0/res/values-h550dp-port-v13/values-h550dp-port-v13.xml",
                     "from": {
                         "startLines": "2",
                         "startColumns": "4",

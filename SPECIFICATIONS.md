@@ -4,7 +4,7 @@
 **Mate** is an advanced, privacy-first, on-device digital assistant. It is designed to replace standard OEM assistants (like Google Gemini or Siri) while overcoming their limitations. Mate acts as a personalized intelligence layer that runs locally, offering long-term memory, customizable personas, and extensible skills, while eventually supporting cross-platform deployment.
 
 ## 2. Core Goals & Features
-*   **100% On-Device Processing**: Primary reasoning happens locally (via Google AI Edge SDK/Gemini Nano or local models like Llama.cpp) to ensure absolute privacy and zero-latency inference.
+*   **100% On-Device Processing**: Primary reasoning happens locally (via MediaPipe GenAI/LlmInference, Gemini Nano/Gemma 2B, or local models like Llama.cpp) to ensure absolute privacy and zero-latency inference.
 *   **Advanced Memory (RAG)**: Unlike standard assistants that forget context, Mate uses a local Vector Database (e.g., SQLite-vec) to store user preferences, personal facts, and past conversations, retrieving them via Retrieval-Augmented Generation (RAG).
 *   **User Persona Ingestion**: Mate learns about the user through several methods:
     *   **Initial Setup Questionnaire**: A conversational onboarding flow asking for basic facts (name, profession, communication style preferences).
@@ -27,7 +27,7 @@
 *   **Framework**: Native Android (Java/Kotlin).
 *   **Entry Point**: Implements `VoiceInteractionService` to register as the OS-level Default Digital Assistant.
 *   **Screen Awareness**: Uses the `AssistStructure` API to read the currently active screen context when invoked.
-*   **Inference Engine Bridge**: An abstraction layer (`AICoreClient`) over the Android AI Edge SDK. Later adaptable to API-based endpoints or ONNX runtime for cross-platform.
+*   **Inference Engine Bridge**: An abstraction layer (`AICoreClient`) over the MediaPipe GenAI SDK (LlmInference). Later adaptable to API-based endpoints or ONNX runtime for cross-platform.
 *   **Storage Layer**: Standard Android SQLite combined with an embedded Vector Search extension (e.g., `sqlite-vec`).
 
 ### 3.2. Cross-Platform Abstraction Strategy

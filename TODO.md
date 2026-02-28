@@ -7,7 +7,7 @@ A 100% local, privacy-first Android assistant that replaces Google Gemini/Assist
 - [x] **Core Service Skeleton**: `VoiceInteractionService` implementation.
 - [x] **Screen Awareness**: `AssistStructure` parsing to "see" active apps.
 - [x] **Initial Project Structure**: Finalized for Android Studio compatibility.
-- [x] **On-Device Reasoning**: Integration with Google AI Edge SDK (AICore/Gemini Nano).
+- [x] **On-Device Reasoning**: Integration with MediaPipe GenAI SDK (LlmInference/Gemini Nano/Gemma).
 - [x] **Personalization Engine**: Profile management (concise vs. verbose, etc.).
 - [x] **UI Overlay**: Bottom-sheet assistant UI with **ClawControl v1.3.1** aesthetic.
 - [x] **Ambient Themes**: Day/Night cycle and "Cozy Office" status indicators.
@@ -21,8 +21,8 @@ A 100% local, privacy-first Android assistant that replaces Google Gemini/Assist
 - [ ] **App Orchestration**: Intent-based control for Email and Calendar.
 
 ## 📝 To-Do List (Active)
-- [x] **Step 1: Setup Gradle for AI Edge SDK & SQLite** (Dependencies ready).
-- [x] **Step 2: Implement `AICoreClient`** to handle local inference.
+- [x] **Step 1: Setup Gradle for MediaPipe LlmInference & SQLite** (Dependencies ready).
+- [x] **Step 2: Implement `AICoreClient`** to handle local inference (Uses LlmInference and auto-downloads model).
 - [x] **Step 3: Analyze ClawControl v1.3.1 for UI inspiration** (Wake-word dictation composer).
 - [x] **Step 4: Create `MemoryManager`** using SQLite for local "facts" storage.
 - [x] **Step 5: Build the Bargain Detection Logic** to trigger on currency symbols.

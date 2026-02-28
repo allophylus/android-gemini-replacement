@@ -1,13 +1,14 @@
 plugins {
     id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
 }
 
 android {
-    namespace 'com.openclaw.assistant'
+    namespace 'com.abettergemini.assistant'
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.openclaw.assistant"
+        applicationId "com.abettergemini.assistant"
         minSdk 34
         targetSdk 34
         versionCode 1
@@ -31,6 +32,9 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
 }
 
 dependencies {
@@ -38,13 +42,15 @@ dependencies {
     implementation 'com.google.android.material:material:1.11.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     
-    // Google AI Edge SDK for Gemini Nano
+    // ML Kit for On-Device Gemini Nano (Stable)
     implementation 'com.google.android.gms:play-services-base:18.4.0'
-    implementation 'com.google.ai.client.generativeai:generativeai:0.4.0'
-    implementation 'com.google.guava:guava:31.1-android'
+    implementation 'com.google.mediapipe:tasks-genai:0.10.14'
     
     // Local TTS (Piper/Coqui Support)
     implementation 'androidx.media:media:1.6.0'
+    
+    // Kotlin Coroutines for Google AI Edge
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
     
     // SQLite for local memory
     implementation "androidx.sqlite:sqlite:2.4.0"

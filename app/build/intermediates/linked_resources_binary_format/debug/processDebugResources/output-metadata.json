@@ -4,7 +4,7 @@
     "type": "LINKED_RESOURCES_BINARY_FORMAT",
     "kind": "Directory"
   },
-  "applicationId": "com.openclaw.assistant",
+  "applicationId": "com.abettergemini.assistant",
   "variantName": "debug",
   "elements": [
     {

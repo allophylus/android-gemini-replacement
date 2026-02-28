@@ -1,6 +1,13 @@
-<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.openclaw.assistant">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <queries>
+        <package android:name="com.google.android.aicore" />
+        <intent>
+            <action android:name="com.google.android.apps.aicore.service.multiuser.AiCoreMultiUserService" />
+        </intent>
+    </queries>
+
     <application android:label="Mate">
         <activity android:name=".MainActivity"
             android:exported="true"

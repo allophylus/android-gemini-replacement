@@ -4,7 +4,7 @@
     "type": "PACKAGED_MANIFESTS",
     "kind": "Directory"
   },
-  "applicationId": "com.openclaw.assistant",
+  "applicationId": "com.abettergemini.assistant",
   "variantName": "debug",
   "elements": [
     {

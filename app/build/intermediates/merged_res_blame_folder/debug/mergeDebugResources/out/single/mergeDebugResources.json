@@ -1,6 +1,6 @@
 [
     {
-        "merged": "com.openclaw.assistant.app-debug-35:/xml_assistant_info.xml.flat",
-        "source": "com.openclaw.assistant.app-main-37:/xml/assistant_info.xml"
+        "merged": "com.abettergemini.assistant.app-debug-35:/xml_assistant_info.xml.flat",
+        "source": "com.abettergemini.assistant.app-main-37:/xml/assistant_info.xml"
     }
 ]

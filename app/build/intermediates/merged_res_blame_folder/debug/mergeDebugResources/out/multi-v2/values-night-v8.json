@@ -1,10 +1,10 @@
 {
     "logs": [
         {
-            "outputFile": "com.openclaw.assistant.app-mergeDebugResources-33:/values-night-v8/values-night-v8.xml",
+            "outputFile": "com.abettergemini.assistant.app-mergeDebugResources-33:/values-night-v8/values-night-v8.xml",
             "map": [
                 {
-                    "source": "/home/fen/.gradle/caches/9.0-milestone-1/transforms/91aeebf93bbc85abf5317b7c8304cd8e/transformed/material-1.11.0/res/values-night-v8/values-night-v8.xml",
+                    "source": "/Users/fen/.gradle/caches/9.0-milestone-1/transforms/facf0ac7aa2a3c2ec27b24e04bca79d1/transformed/material-1.11.0/res/values-night-v8/values-night-v8.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34",
                         "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
@@ -21,7 +21,7 @@
                     }
                 },
                 {
-                    "source": "/home/fen/.gradle/caches/9.0-milestone-1/transforms/300d9f09342fe81e51843a29b9928a86/transformed/appcompat-1.6.1/res/values-night-v8/values-night-v8.xml",
+                    "source": "/Users/fen/.gradle/caches/9.0-milestone-1/transforms/c456a8827f08ceb58a20ba12f1f97c23/transformed/appcompat-1.6.1/res/values-night-v8/values-night-v8.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,7,8,9",
                         "startColumns": "4,4,4,4,4,4,4,4",

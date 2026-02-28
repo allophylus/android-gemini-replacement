@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.openclaw.assistant"
+    package="com.abettergemini.assistant"
     android:versionCode="1"
     android:versionName="1.0" >
 
@@ -10,19 +10,30 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <queries>
+        <package android:name="com.google.android.aicore" />
+
+        <intent>
+            <action android:name="com.google.android.apps.aicore.service.multiuser.AiCoreMultiUserService" />
+        </intent>
+    </queries>
+
     <permission
-        android:name="com.openclaw.assistant.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+        android:name="com.abettergemini.assistant.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
         android:protectionLevel="signature" />
 
-    <uses-permission android:name="com.openclaw.assistant.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+    <uses-permission android:name="com.abettergemini.assistant.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" /> <!-- Although the *SdkVersion is captured in gradle build files, this is required for non gradle builds -->
+    <!-- <uses-sdk android:minSdkVersion="14"/> -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
         android:appComponentFactory="androidx.core.app.CoreComponentFactory"
         android:debuggable="true"
         android:extractNativeLibs="false"
-        android:label="Mate" >
+        android:label="Mate"
+        android:testOnly="true" >
         <activity
-            android:name="com.openclaw.assistant.MainActivity"
+            android:name="com.abettergemini.assistant.MainActivity"
             android:exported="true"
             android:theme="@android:style/Theme.DeviceDefault.Light" >
             <intent-filter>
@@ -33,7 +44,7 @@
         </activity>
 
         <service
-            android:name="com.openclaw.assistant.AssistantService"
+            android:name="com.abettergemini.assistant.AssistantService"
             android:exported="true"
             android:permission="android.permission.BIND_VOICE_INTERACTION" >
             <meta-data
@@ -45,11 +56,11 @@
             </intent-filter>
         </service>
         <service
-            android:name="com.openclaw.assistant.AssistantSessionService"
+            android:name="com.abettergemini.assistant.AssistantSessionService"
             android:exported="true"
             android:permission="android.permission.BIND_VOICE_INTERACTION" />
         <service
-            android:name="com.openclaw.assistant.AssistantRecognitionService"
+            android:name="com.abettergemini.assistant.AssistantRecognitionService"
             android:exported="true" />
 
         <activity
@@ -63,7 +74,7 @@
 
         <provider
             android:name="androidx.startup.InitializationProvider"
-            android:authorities="com.openclaw.assistant.androidx-startup"
+            android:authorities="com.abettergemini.assistant.androidx-startup"
             android:exported="false" >
             <meta-data
                 android:name="androidx.emoji2.text.EmojiCompatInitializer"
@@ -95,6 +106,23 @@
                 <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
             </intent-filter>
         </receiver>
+
+        <service
+            android:name="com.google.android.datatransport.runtime.backends.TransportBackendDiscovery"
+            android:exported="false" >
+            <meta-data
+                android:name="backend:com.google.android.datatransport.cct.CctBackendFactory"
+                android:value="cct" />
+        </service>
+        <service
+            android:name="com.google.android.datatransport.runtime.scheduling.jobscheduling.JobInfoSchedulerService"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" >
+        </service>
+
+        <receiver
+            android:name="com.google.android.datatransport.runtime.scheduling.jobscheduling.AlarmManagerSchedulerBroadcastReceiver"
+            android:exported="false" />
     </application>
 
 </manifest>
