@@ -9,7 +9,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /**
- * Interface for On-Device Gemini Nano using MediaPipe Tasks GenAI.
+ * Interface for On-Device LLM inference via dual backends (MediaPipe + llama.cpp).
  */
 class AICoreClient(private val context: Context) {
 

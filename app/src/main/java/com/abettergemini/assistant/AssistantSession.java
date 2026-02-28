@@ -166,7 +166,7 @@ public class AssistantSession extends VoiceInteractionSession {
                 resultText.post(() -> {
                     setIndicatorStatus(false);
                     thinkingBar.setVisibility(View.GONE);
-                    resultText.setText("Gemini Nano Error: " + t.getMessage());
+                    resultText.setText("AI Error: " + t.getMessage());
                 });
             }
         });
