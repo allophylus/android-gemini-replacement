@@ -32,10 +32,15 @@ class AICoreClient(private val context: Context) {
         scope.launch(Dispatchers.IO) {
             try {
                 // Use internal storage to avoid needing file system permissions
-                val modelFile = java.io.File(context.filesDir, "gemma-2b.gguf")
+                val modelFile = java.io.File(context.filesDir, "gemma-2b.bin")
                 
                 if (!modelFile.exists() || modelFile.length() < 1000000) { // Redownload if corrupt or empty
-                    downloadModel(modelFile)
+                    if (isUnmeteredNetwork()) {
+                        downloadModel(modelFile)
+                    } else {
+                        // Throw specifically so MainActivity can catch it and show the cellular prompt
+                        throw Exception("CELLULAR_DOWNLOAD_REQUIRED")
+                    }
                 }
 
                 val options = LlmInference.LlmInferenceOptions.builder()
@@ -47,17 +52,40 @@ class AICoreClient(private val context: Context) {
                         // Streaming results
                     }
                     .setErrorListener { error ->
-                        Log.e(TAG, "LlmInference Error: \${error.message}")
+                        Log.e(TAG, "LlmInference Error: " + error.message)
                     }
                     .build()
 
                 llmInference = LlmInference.createFromOptions(context, options)
                 Log.d(TAG, "MediaPipe LlmInference initialized for on-device inference.")
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to initialize LlmInference (MediaPipe): \${e.message}", e)
+                Log.e(TAG, "Failed to initialize LlmInference (MediaPipe): " + e.message, e)
+                throw e // Propagate error up to surface in MainActivity checks
             } finally {
                 isInitializing = false
             }
+        }
+    }
+
+    /**
+     * Checks network state. If on Wi-Fi or Ethernet, returns true. 
+     * If on Cellular, returns false so MainActivity can prompt the user.
+     */
+    fun isUnmeteredNetwork(): Boolean {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+        val network = connectivityManager.activeNetwork ?: return false
+        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+        return capabilities.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI) || 
+               capabilities.hasTransport(android.net.NetworkCapabilities.TRANSPORT_ETHERNET)
+    }
+
+    /**
+     * Public method to explicitly start the download (e.g. after user agrees to cellular warning)
+     */
+    fun startDownloadExplicitly() {
+        val modelFile = java.io.File(context.filesDir, "gemma-2b.bin")
+        scope.launch(Dispatchers.IO) {
+            downloadModel(modelFile)
         }
     }
 
@@ -72,18 +100,15 @@ class AICoreClient(private val context: Context) {
         downloadProgress = 0
         Log.d(TAG, "Downloading Gemini Nano model to internal storage...")
         
-        // Using a reliable HuggingFace mirror for the quantized 2B model
-        val modelUrl = java.net.URL("https://huggingface.co/lmstudio-community/gemma-2-2b-it-GGUF/resolve/main/gemma-2-2b-it-Q4_K_M.gguf") 
+        // Google's official MediaPipe format for 2B
+        val modelUrl = java.net.URL("https://storage.googleapis.com/mediapipe-models/llm_inference/gemma_2b_en/float32/1/gemma_2b_en.bin") 
         
         try {
             val connection = modelUrl.openConnection() as java.net.HttpURLConnection
-            
-            // Follow redirects since HuggingFace uses Cloudfront/CDN redirects
-            connection.instanceFollowRedirects = true
             connection.connect()
             
             if (connection.responseCode != java.net.HttpURLConnection.HTTP_OK) {
-                throw Exception("HTTP Error ${connection.responseCode}")
+                throw Exception("HTTP Error " + connection.responseCode)
             }
             
             val fileLength = connection.contentLength

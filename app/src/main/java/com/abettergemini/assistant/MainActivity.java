@@ -1,6 +1,7 @@
 package com.abettergemini.assistant;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -200,6 +201,20 @@ public class MainActivity extends Activity {
                         statusView.setText("- Gemini Nano: 📥 Download Pending...");
                     } else if (msg != null && msg.contains("Downloading")) {
                         // Progress listener handles UI updates natively
+                    } else if (msg != null && msg.contains("CELLULAR_DOWNLOAD_REQUIRED")) {
+                        statusView.setText("- Gemini Nano: ⚠️ Awaiting Wi-Fi...");
+                        new AlertDialog.Builder(MainActivity.this)
+                                .setTitle("Large Download Warning")
+                                .setMessage(
+                                        "The Gemini Nano model is about 2GB. Do you want to download over your cellular data connection?")
+                                .setPositiveButton("Download Anyway", (dialog, which) -> {
+                                    statusView.setText("- Gemini Nano: 📥 Preparing cellular download...");
+                                    aiClient.startDownloadExplicitly();
+                                })
+                                .setNegativeButton("Wait for Wi-Fi", (dialog, which) -> {
+                                    statusView.setText("- Gemini Nano: ⏸️ Paused (Waiting for Wi-Fi)");
+                                })
+                                .show();
                     } else {
                         statusView.setText("- Gemini Nano: ⚠️ Not Ready (" + msg + ")");
                     }
