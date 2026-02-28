@@ -224,6 +224,10 @@ class AICoreClient(private val context: Context) {
                     listener.onProgress(100)
                 }
             }
+            // Auto-load the model after successful download
+            if (targetFile.exists() && targetFile.length() > 0) {
+                initializeLlm()
+            }
         }
     }
 
