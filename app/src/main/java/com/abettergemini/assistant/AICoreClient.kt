@@ -198,6 +198,9 @@ class AICoreClient(private val context: Context) {
         fun onError(t: Throwable)
     }
 
+    private data class PendingRequest(val prompt: String, val callback: ResponseCallback)
+    private val requestQueue = mutableListOf<PendingRequest>()
+
     fun generateResponse(userPrompt: String, screenContext: String?, callback: ResponseCallback) {
         generateResponse(userPrompt, screenContext, null, callback)
     }
@@ -227,28 +230,38 @@ class AICoreClient(private val context: Context) {
 
         promptBuilder.append("USER: ")
         promptBuilder.append(userPrompt)
+        val finalPrompt = promptBuilder.toString()
 
         scope.launch(Dispatchers.IO) {
             if (isGenerating) {
+                requestQueue.add(PendingRequest(finalPrompt, callback))
                 scope.launch(Dispatchers.Main) {
-                    callback.onError(Exception("Still generating previous response. Please wait..."))
+                    callback.onSuccess("\n\n[Added to generation queue...]")
                 }
                 return@launch
             }
             
-            isGenerating = true
-            try {
-                val response = currentLlm.generateResponse(promptBuilder.toString())
-                scope.launch(Dispatchers.Main) {
-                    callback.onSuccess(response)
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "MediaPipe Generate Error", e)
-                scope.launch(Dispatchers.Main) {
-                    callback.onError(e)
-                }
-            } finally {
-                isGenerating = false
+            processQueueItem(currentLlm, finalPrompt, callback)
+        }
+    }
+
+    private suspend fun processQueueItem(currentLlm: LlmInference, prompt: String, callback: ResponseCallback) {
+        isGenerating = true
+        try {
+            val response = currentLlm.generateResponse(prompt)
+            scope.launch(Dispatchers.Main) {
+                callback.onSuccess(response)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "MediaPipe Generate Error", e)
+            scope.launch(Dispatchers.Main) {
+                callback.onError(e)
+            }
+        } finally {
+            isGenerating = false
+            if (requestQueue.isNotEmpty()) {
+                val nextRequest = requestQueue.removeAt(0)
+                processQueueItem(currentLlm, nextRequest.prompt, nextRequest.callback)
             }
         }
     }
