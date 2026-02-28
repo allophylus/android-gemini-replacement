@@ -140,11 +140,11 @@ public class MainActivity extends Activity {
                 downloadBar.setVisibility(View.VISIBLE);
             }
             downloadBar.setProgress(percent);
-            aiCheck.setText("- " + prefsManager.getSelectedModel() + ": 📥 Downloading... " + percent + "%");
+            aiCheck.setText("- " + prefs.getSelectedModel() + ": 📥 Downloading... " + percent + "%");
 
             if (percent >= 100) {
                 downloadBar.setVisibility(View.GONE);
-                aiCheck.setText("- " + prefsManager.getSelectedModel() + ": ✅ Ready");
+                aiCheck.setText("- " + prefs.getSelectedModel() + ": ✅ Ready");
             }
         });
 
@@ -181,7 +181,7 @@ public class MainActivity extends Activity {
         boolean isDefault = isMateDefaultAssistant();
         assistCheck.setText("- Mate set as Default Assistant: " + (isDefault ? "✅" : "❌"));
 
-        aiCheck.setText("- " + prefsManager.getSelectedModel() + ": Checking...");
+        aiCheck.setText("- " + prefs.getSelectedModel() + ": Checking...");
         checkAiCoreStatus(aiCheck);
     }
 
@@ -190,7 +190,7 @@ public class MainActivity extends Activity {
             @Override
             public void onSuccess(String response) {
                 runOnUiThread(() -> {
-                    statusView.setText("- " + prefsManager.getSelectedModel() + ": ✅ Ready");
+                    statusView.setText("- " + prefs.getSelectedModel() + ": ✅ Ready");
                     if (swipeRefresh != null)
                         swipeRefresh.setRefreshing(false);
                 });
@@ -201,27 +201,27 @@ public class MainActivity extends Activity {
                 runOnUiThread(() -> {
                     String msg = t.getMessage();
                     if (msg != null && msg.contains("empty")) {
-                        statusView.setText("- " + prefsManager.getSelectedModel() + ": 📥 Download Pending...");
+                        statusView.setText("- " + prefs.getSelectedModel() + ": 📥 Download Pending...");
                     } else if (msg != null && msg.contains("Downloading")) {
                         // Progress listener handles UI updates natively
                     } else if (msg != null && msg.contains("CELLULAR_DOWNLOAD_REQUIRED")) {
-                        statusView.setText("- " + prefsManager.getSelectedModel() + ": ⚠️ Awaiting Wi-Fi...");
+                        statusView.setText("- " + prefs.getSelectedModel() + ": ⚠️ Awaiting Wi-Fi...");
                         new AlertDialog.Builder(MainActivity.this)
                                 .setTitle("Large Download Warning")
                                 .setMessage(
                                         "The model is large. Do you want to download over your cellular data connection?")
                                 .setPositiveButton("Download Anyway", (dialog, which) -> {
-                                    statusView.setText("- " + prefsManager.getSelectedModel() + ": 📥 Preparing cellular download...");
+                                    statusView.setText("- " + prefs.getSelectedModel() + ": 📥 Preparing cellular download...");
                                     aiClient.startDownloadExplicitly();
                                 })
                                 .setNegativeButton("Wait for Wi-Fi", (dialog, which) -> {
-                                    statusView.setText("- " + prefsManager.getSelectedModel() + ": ⏸️ Paused (Waiting for Wi-Fi)");
+                                    statusView.setText("- " + prefs.getSelectedModel() + ": ⏸️ Paused (Waiting for Wi-Fi)");
                                 })
                                 .show();
                     } else if (msg != null && msg.contains("ENOSPC")) {
-                        statusView.setText("- " + prefsManager.getSelectedModel() + ": ⚠️ Not Ready (Not enough storage space)");
+                        statusView.setText("- " + prefs.getSelectedModel() + ": ⚠️ Not Ready (Not enough storage space)");
                     } else {
-                        statusView.setText("- " + prefsManager.getSelectedModel() + ": ⚠️ Not Ready (" + msg + ")");
+                        statusView.setText("- " + prefs.getSelectedModel() + ": ⚠️ Not Ready (" + msg + ")");
                     }
                     if (swipeRefresh != null)
                         swipeRefresh.setRefreshing(false);
@@ -442,7 +442,7 @@ public class MainActivity extends Activity {
         unloadBtn.setText("Free Model from RAM");
         unloadBtn.setOnClickListener(v -> {
             aiClient.unloadModel();
-            addChatMessage("System", prefsManager.getSelectedModel() + " model securely unloaded from RAM.");
+            addChatMessage("System", prefs.getSelectedModel() + " model securely unloaded from RAM.");
         });
         layout.addView(unloadBtn);
 
