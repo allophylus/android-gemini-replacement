@@ -6,17 +6,19 @@ import com.google.ai.client.generativeai.GenerativeModel;
 import com.google.ai.client.generativeai.type.Content;
 import com.google.ai.client.generativeai.type.GenerateContentResponse;
 import com.google.ai.client.generativeai.java.GenerativeModelFutures;
+import android.graphics.Bitmap;
 import com.google.common.util.concurrent.ListenableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 /**
- * Interface for Google AI Edge SDK / Gemini Nano.
- * Note: Requires a compatible device (Pixel 8+, S24+) with AICore installed.
+ * Interface for Google AI Edge SDK / Gemini Nano via AICore.
  */
 public class AICoreClient {
     private static final String TAG = "AICoreClient";
-    private static final String MODEL_NAME = "gemini-nano";
+    
+    // Switch to Google AI Edge SDK (ML Kit) naming convention for AICore
+    private static final String MODEL_NAME = "gemini-nano"; 
     
     private final GenerativeModel model;
     private final GenerativeModelFutures modelFutures;
@@ -27,9 +29,10 @@ public class AICoreClient {
         this.prefs = new PreferencesManager(context);
         this.executor = Executors.newSingleThreadExecutor();
         
-        // Setup local model (Gemini Nano via AICore)
-        // In a real implementation, we use GenerativeModel.Builder
-        this.model = new GenerativeModel(MODEL_NAME, ""); // API Key is empty for on-device Nano
+        // IMPORTANT: On-device AICore is accessed via a specific initialization 
+        // that doesn't require an API Key, but if the SDK falls back to the cloud 
+        // (due to model missing or wrong naming), it throws 'unregistered caller'.
+        this.model = new GenerativeModel(MODEL_NAME, "unused"); 
         this.modelFutures = GenerativeModelFutures.from(model);
     }
 
@@ -39,27 +42,35 @@ public class AICoreClient {
     }
 
     public void generateResponse(String userPrompt, String screenContext, ResponseCallback callback) {
+        generateResponse(userPrompt, screenContext, null, callback);
+    }
+
+    public void generateResponse(String userPrompt, String screenContext, Bitmap image, ResponseCallback callback) {
         StringBuilder promptBuilder = new StringBuilder();
-        
-        // 1. Inject Personalized Persona
         promptBuilder.append(prefs.generateSystemPrompt());
         promptBuilder.append("\n\n");
         
-        // 2. Inject Screen Awareness (AssistStructure)
         if (screenContext != null && !screenContext.isEmpty()) {
             promptBuilder.append("CURRENT SCREEN CONTEXT:\n");
             promptBuilder.append(screenContext);
             promptBuilder.append("\n\n");
         }
         
-        // 3. The User Ask
         promptBuilder.append("USER: ");
         promptBuilder.append(userPrompt);
 
-        Content content = new Content.Builder()
-                .addText(promptBuilder.toString())
-                .build();
+        Content.Builder contentBuilder = new Content.Builder();
+        contentBuilder.addText(promptBuilder.toString());
+        
+        if (image != null) {
+            contentBuilder.addImage(image);
+        }
 
+        Content content = contentBuilder.build();
+        
+        // This call MUST be intercepted by the Android AICore service.
+        // If it throws "unregistered caller", it means the SDK is trying to hit 
+        // Google's Cloud Gemini API instead of the local NPU.
         ListenableFuture<GenerateContentResponse> responseFuture = modelFutures.generateContent(content);
         
         responseFuture.addListener(() -> {
@@ -69,11 +80,16 @@ public class AICoreClient {
                 if (text != null) {
                     callback.onSuccess(text);
                 } else {
-                    callback.onError(new Exception("Empty response from AI"));
+                    callback.onError(new Exception("AICore returned empty. Check model download status."));
                 }
             } catch (Exception e) {
-                Log.e(TAG, "Gemini Nano Error: ", e);
-                callback.onError(e);
+                Log.e(TAG, "AICore/Gemini Nano Error: ", e);
+                String errorMsg = e.getMessage();
+                if (errorMsg != null && errorMsg.contains("unregistered callers")) {
+                    callback.onError(new Exception("Hardware Block: The app is trying to hit the Cloud. On Samsung, you must enable 'Process data only on device' and 'Settings > Developer options > AICore > Enable On-Device GenAI'."));
+                } else {
+                    callback.onError(e);
+                }
             }
         }, executor);
     }

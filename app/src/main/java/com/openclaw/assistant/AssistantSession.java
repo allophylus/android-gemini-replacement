@@ -121,6 +121,12 @@ public class AssistantSession extends VoiceInteractionSession {
     public void onHandleAssist(android.service.voice.VoiceInteractionSession.AssistState state) {
         super.onHandleAssist(state);
         AssistStructure structure = state.getAssistStructure();
+        // Screenshot access requires the SHOW_SCREEN_VIOLATION check
+        android.graphics.Bitmap screenshot = null;
+        try {
+            // Check for screenshot in older API or via reflection if necessary
+            // In SDK 34, it's typically part of the AssistState if allowed
+        } catch (Exception e) {}
 
         setIndicatorStatus(true);
         thinkingBar.setVisibility(View.VISIBLE);
@@ -137,8 +143,10 @@ public class AssistantSession extends VoiceInteractionSession {
 
         String combinedContext = String.join("\n", screenText);
         
-        // Process Context with Gemini Nano
+        // Vision Logic: If screenshot is available, we could pass it to a Vision-capable model
+        // For now, we continue with text-based analysis of the screen structure.
         String dummyPrompt = "Analyze this screen.";
+        
         aiClient.generateResponse(dummyPrompt, combinedContext, new AICoreClient.ResponseCallback() {
             @Override
             public void onSuccess(String response) {
