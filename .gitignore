@@ -15,6 +15,7 @@
 
 # Kotlin
 *.class
+.kotlin/
 
 # NDK
 obj/
