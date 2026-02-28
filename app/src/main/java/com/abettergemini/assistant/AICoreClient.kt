@@ -139,6 +139,15 @@ class AICoreClient(private val context: Context) {
             
             val fileLength = connection.contentLength
             val input = connection.inputStream
+            
+            // Explicitly guard against ENOSPC by verifying partition has at least 2.2GB free
+            val stat = android.os.StatFs(targetFile.parentFile?.absolutePath ?: context.filesDir.absolutePath)
+            val availableSpace = stat.availableBlocksLong * stat.blockSizeLong
+            if (availableSpace < 2200000000L) {
+                targetFile.delete()
+                throw Exception("ENOSPC")
+            }
+            
             val output = java.io.FileOutputStream(targetFile)
             
             val data = ByteArray(8192)
