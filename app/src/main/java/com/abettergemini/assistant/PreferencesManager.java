@@ -98,7 +98,7 @@ public class PreferencesManager {
     }
 
     public String getSelectedModel() {
-        return prefs.getString(KEY_SELECTED_MODEL, "Gemma 1.1 2B (Recommended)");
+        return prefs.getString(KEY_SELECTED_MODEL, "SmolVLM 500M");
     }
 
     public void setSelectedModel(String value) {

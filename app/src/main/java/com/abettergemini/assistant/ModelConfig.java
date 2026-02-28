@@ -43,37 +43,12 @@ public class ModelConfig {
     }
 
     /**
-     * Returns the full list of models with verified free public download URLs.
+     * Returns the full list of models. Public GGUF models listed first.
+     * Gemma (MediaPipe) models require HuggingFace login for download.
      */
     public static ModelConfig[] getAvailableModels() {
         return new ModelConfig[]{
-                // ===== MediaPipe Models (TFLite) =====
-                new ModelConfig(
-                        "Gemma 1.1 2B",
-                        "gemma-1.1-2b-it-int4.bin",
-                        "https://huggingface.co/t-ghosh/gemma-tflite/resolve/main/gemma-1.1-2b-it-int4.bin",
-                        500000000L,
-                        "Google Gemma 1.1. Fast, reliable on all Android devices.",
-                        Backend.MEDIAPIPE, false, "~1.4GB"
-                ),
-                new ModelConfig(
-                        "Gemma 2B",
-                        "gemma-2b-it-cpu-int4.bin",
-                        "https://huggingface.co/ASahu16/gemma/resolve/main/gemma-2b-it-cpu-int4.bin",
-                        1000000000L,
-                        "Original Gemma 2B. Proven stable baseline.",
-                        Backend.MEDIAPIPE, false, "~1.34GB"
-                ),
-
-                // ===== llama.cpp Models (GGUF) =====
-                new ModelConfig(
-                        "Moondream2",
-                        "moondream2-text-model-f16.gguf",
-                        "https://huggingface.co/moondream/moondream2-gguf/resolve/main/moondream2-text-model-f16.gguf",
-                        500000000L,
-                        "Vision model. Can describe images, read text in photos.",
-                        Backend.LLAMA_CPP, true, "~1.5GB"
-                ),
+                // ===== llama.cpp Models (GGUF) — Public Downloads =====
                 new ModelConfig(
                         "SmolVLM 500M",
                         "smolvlm-500m-instruct-q8_0.gguf",
@@ -83,6 +58,22 @@ public class ModelConfig {
                         Backend.LLAMA_CPP, true, "~0.5GB"
                 ),
                 new ModelConfig(
+                        "Phi-3.5 Mini",
+                        "phi-3.5-mini-instruct-q4_k_m.gguf",
+                        "https://huggingface.co/bartowski/Phi-3.5-mini-instruct-GGUF/resolve/main/Phi-3.5-mini-instruct-Q4_K_M.gguf",
+                        1500000000L,
+                        "Microsoft. Best reasoning at this size. Text-only.",
+                        Backend.LLAMA_CPP, false, "~1.8GB"
+                ),
+                new ModelConfig(
+                        "Moondream2",
+                        "moondream2-text-model-f16.gguf",
+                        "https://huggingface.co/moondream/moondream2-gguf/resolve/main/moondream2-text-model-f16.gguf",
+                        500000000L,
+                        "Vision model. Can describe images, read text in photos.",
+                        Backend.LLAMA_CPP, true, "~1.5GB"
+                ),
+                new ModelConfig(
                         "Qwen2-VL 2B",
                         "qwen2-vl-2b-instruct-q4_k_m.gguf",
                         "https://huggingface.co/Qwen/Qwen2-VL-2B-Instruct-GGUF/resolve/main/qwen2-vl-2b-instruct-q4_k_m.gguf",
@@ -90,13 +81,23 @@ public class ModelConfig {
                         "Alibaba's vision model. Strong OCR and image understanding.",
                         Backend.LLAMA_CPP, true, "~1.6GB"
                 ),
+
+                // ===== MediaPipe Models (TFLite) — Require HuggingFace Login =====
                 new ModelConfig(
-                        "Phi-3.5 Mini",
-                        "phi-3.5-mini-instruct-q4_k_m.gguf",
-                        "https://huggingface.co/bartowski/Phi-3.5-mini-instruct-GGUF/resolve/main/Phi-3.5-mini-instruct-Q4_K_M.gguf",
-                        1500000000L,
-                        "Microsoft. Best reasoning at this size. Text-only.",
-                        Backend.LLAMA_CPP, false, "~1.8GB"
+                        "Gemma 1.1 2B",
+                        "gemma-1.1-2b-it-int4.bin",
+                        "https://huggingface.co/t-ghosh/gemma-tflite/resolve/main/gemma-1.1-2b-it-int4.bin",
+                        500000000L,
+                        "Google Gemma 1.1. ⚠️ Requires HuggingFace login to download.",
+                        Backend.MEDIAPIPE, false, "~1.4GB"
+                ),
+                new ModelConfig(
+                        "Gemma 2B",
+                        "gemma-2b-it-cpu-int4.bin",
+                        "https://huggingface.co/ASahu16/gemma/resolve/main/gemma-2b-it-cpu-int4.bin",
+                        1000000000L,
+                        "Original Gemma 2B. ⚠️ Requires HuggingFace login to download.",
+                        Backend.MEDIAPIPE, false, "~1.34GB"
                 )
         };
     }
@@ -108,6 +109,6 @@ public class ModelConfig {
         for (ModelConfig m : getAvailableModels()) {
             if (m.displayName.equals(displayName)) return m;
         }
-        return getAvailableModels()[0]; // Default to Gemma 1.1
+        return getAvailableModels()[0]; // Default to SmolVLM 500M
     }
 }
