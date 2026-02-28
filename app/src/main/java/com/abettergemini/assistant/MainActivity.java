@@ -123,6 +123,27 @@ public class MainActivity extends Activity {
         aiCheck = new TextView(this);
         layout.addView(aiCheck);
 
+        android.widget.ProgressBar downloadBar = new android.widget.ProgressBar(this, null,
+                android.R.attr.progressBarStyleHorizontal);
+        downloadBar.setMax(100);
+        downloadBar.setProgress(0);
+        downloadBar.setVisibility(View.GONE);
+        layout.addView(downloadBar);
+
+        // Register the real-time download listener
+        aiClient.setProgressListener(percent -> {
+            if (downloadBar.getVisibility() == View.GONE) {
+                downloadBar.setVisibility(View.VISIBLE);
+            }
+            downloadBar.setProgress(percent);
+            aiCheck.setText("- Gemini Nano: 📥 Downloading... " + percent + "%");
+
+            if (percent >= 100) {
+                downloadBar.setVisibility(View.GONE);
+                aiCheck.setText("- Gemini Nano (AICore): ✅ Ready (Downloaded)");
+            }
+        });
+
         TextView infoText = new TextView(this);
         infoText.setText(
                 "\nOn Samsung Fold 7:\n1. Settings > Advanced features > Advanced intelligence\n2. Toggle ON 'Process data only on device'\n3. If missing, clear 'AICore' app cache and restart.");
@@ -176,7 +197,9 @@ public class MainActivity extends Activity {
                 runOnUiThread(() -> {
                     String msg = t.getMessage();
                     if (msg != null && msg.contains("empty")) {
-                        statusView.setText("- Gemini Nano: 📥 Download Pending (Check Settings)");
+                        statusView.setText("- Gemini Nano: 📥 Download Pending...");
+                    } else if (msg != null && msg.contains("Downloading")) {
+                        // Progress listener handles UI updates natively
                     } else {
                         statusView.setText("- Gemini Nano: ⚠️ Not Ready (" + msg + ")");
                     }

@@ -61,6 +61,12 @@ class AICoreClient(private val context: Context) {
         }
     }
 
+    interface DownloadProgressListener {
+        fun onProgress(percent: Int)
+    }
+
+    var progressListener: DownloadProgressListener? = null
+
     private fun downloadModel(targetFile: java.io.File) {
         isDownloading = true
         downloadProgress = 0
@@ -88,7 +94,15 @@ class AICoreClient(private val context: Context) {
             while (input.read(data).also { count = it } != -1) {
                 total += count.toLong()
                 if (fileLength > 0) {
-                    downloadProgress = (total * 100 / fileLength).toInt()
+                    val newProgress = (total * 100 / fileLength).toInt()
+                    if (newProgress != downloadProgress) {
+                        downloadProgress = newProgress
+                        progressListener?.let { listener ->
+                            scope.launch(Dispatchers.Main) {
+                                listener.onProgress(downloadProgress)
+                            }
+                        }
+                    }
                 }
                 output.write(data, 0, count)
             }
@@ -102,6 +116,12 @@ class AICoreClient(private val context: Context) {
             throw e
         } finally {
             isDownloading = false
+            // Final update to complete progress bar setup
+            progressListener?.let { listener ->
+                scope.launch(Dispatchers.Main) {
+                    listener.onProgress(100)
+                }
+            }
         }
     }
 
