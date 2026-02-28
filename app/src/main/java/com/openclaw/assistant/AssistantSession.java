@@ -11,18 +11,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class AssistantSession extends VoiceInteractionSession {
-    private static final String TAG = "OpenClawAssistant";
+    private static final String TAG = "Mate";
 
     public AssistantSession(Context context) {
         super(context);
     }
 
     @Override
-    public void onHandleAssist(Bundle data, AssistStructure structure, AssistContent content) {
-        super.onHandleAssist(data, structure, content);
-        
+    public void onHandleAssist(android.service.voice.VoiceInteractionSession.AssistState state) {
+        super.onHandleAssist(state);
+        Bundle data = state.getAssistData();
+        AssistStructure structure = state.getAssistStructure();
+        AssistContent content = state.getAssistContent();
+
         Log.d(TAG, "Assist triggered. Parsing screen content...");
-        
+
         List<String> screenText = new ArrayList<>();
         if (structure != null) {
             int nodeCount = structure.getWindowNodeCount();
@@ -35,13 +38,14 @@ public class AssistantSession extends VoiceInteractionSession {
         // This is where the local LLM (Gemini Nano) would receive the context
         String combinedContext = String.join("\n", screenText);
         Log.d(TAG, "Extracted Context: " + combinedContext);
-        
+
         // For Bargain Hunting: Check extracted text for currency/prices
         processContextForBargains(combinedContext);
     }
 
     private void parseNode(AssistStructure.ViewNode node, List<String> textList) {
-        if (node == null) return;
+        if (node == null)
+            return;
 
         CharSequence text = node.getText();
         if (text != null && text.length() > 0) {

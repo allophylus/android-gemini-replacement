@@ -1,12 +1,18 @@
 package com.openclaw.assistant;
 
+import android.content.Intent;
 import android.speech.RecognitionService;
 
 public class AssistantRecognitionService extends RecognitionService {
     @Override
-    protected void onStartListening(Intent recognizerIntent, Callback listener) {}
+    protected void onStartListening(Intent recognizerIntent, Callback listener) {
+    }
+
     @Override
-    protected void onCancel(Callback listener) {}
+    protected void onCancel(Callback listener) {
+    }
+
     @Override
-    protected void onStopListening(Callback listener) {}
+    protected void onStopListening(Callback listener) {
+    }
 }

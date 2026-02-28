@@ -24,7 +24,7 @@ Once installed, you must manually grant the app assistant permissions:
 1. Open **Settings** on your Android device.
 2. Go to **Apps > Default apps > Digital assistant app**.
 3. Tap **Default digital assistant app**.
-4. Select **OpenClaw Assistant**.
+4. Select **Mate**.
 
 ## Step 4: Testing the Logic
 1. Open any app (e.g., a shopping app or browser).
