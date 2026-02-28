@@ -168,14 +168,20 @@ public class MainActivity extends Activity {
     }
 
     private boolean isMateDefaultAssistant() {
+        boolean isRoleHeld = false;
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
             android.app.role.RoleManager roleManager = getSystemService(android.app.role.RoleManager.class);
             if (roleManager != null && roleManager.isRoleAvailable(android.app.role.RoleManager.ROLE_ASSISTANT)) {
-                return roleManager.isRoleHeld(android.app.role.RoleManager.ROLE_ASSISTANT);
+                isRoleHeld = roleManager.isRoleHeld(android.app.role.RoleManager.ROLE_ASSISTANT);
             }
         }
         String assistant = Settings.Secure.getString(getContentResolver(), "assistant");
-        return assistant != null && assistant.contains("com.abettergemini.assistant");
+        boolean isSecureStringAssistant = assistant != null && assistant.contains("com.abettergemini.assistant");
+
+        String voiceService = Settings.Secure.getString(getContentResolver(), "voice_interaction_service");
+        boolean isVoiceService = voiceService != null && voiceService.contains("com.abettergemini.assistant");
+
+        return isRoleHeld || isSecureStringAssistant || isVoiceService;
     }
 
     private View createChatView() {

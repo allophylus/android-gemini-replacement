@@ -118,7 +118,7 @@ class AICoreClient(private val context: Context) {
         val currentLlm = llmInference
         if (currentLlm == null) {
             if (isDownloading) {
-                callback.onError(Exception("Downloading LLM... \$downloadProgress% complete. Please wait."))
+                callback.onError(Exception("Downloading LLM... $downloadProgress% complete. Please wait."))
             } else if (isInitializing) {
                 callback.onError(Exception("Initializing LLM Engine..."))
             } else {
