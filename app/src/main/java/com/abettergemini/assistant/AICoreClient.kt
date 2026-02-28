@@ -60,7 +60,9 @@ class AICoreClient(private val context: Context) {
                 Log.d(TAG, "MediaPipe LlmInference initialized for on-device inference.")
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to initialize LlmInference (MediaPipe): " + e.message, e)
-                throw e // Propagate error up to surface in MainActivity checks
+                // We purposefully do NOT throw 'e' here. Throwing inside a CoroutineScope(Dispatchers.IO) 
+                // causes a FATAL EXCEPTION and crashes the app. 
+                // MainActivity's checkAiCoreStatus will natively catch that llmInference is null.
             } finally {
                 isInitializing = false
             }
@@ -100,11 +102,12 @@ class AICoreClient(private val context: Context) {
         downloadProgress = 0
         Log.d(TAG, "Downloading Gemini Nano model to internal storage...")
         
-        // Google's official MediaPipe format for 2B
-        val modelUrl = java.net.URL("https://storage.googleapis.com/mediapipe-models/llm_inference/gemma_2b_en/float32/1/gemma_2b_en.bin") 
+        // Google's MediaPipe Studio officially hosts this public, un-gated endpoint 
+        val modelUrl = java.net.URL("https://storage.googleapis.com/jmstore/Kaggle/gemma-2b-it-cpu-int4.bin") 
         
         try {
             val connection = modelUrl.openConnection() as java.net.HttpURLConnection
+            connection.instanceFollowRedirects = true
             connection.connect()
             
             if (connection.responseCode != java.net.HttpURLConnection.HTTP_OK) {
