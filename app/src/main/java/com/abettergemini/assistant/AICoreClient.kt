@@ -17,6 +17,7 @@ class AICoreClient(private val context: Context) {
     private val scope = CoroutineScope(Dispatchers.Main)
     
     private var llmInference: LlmInference? = null
+    private var llamaCppBackend: LlamaCppBackend? = null
     private var isInitializing = false
     private var isDownloading = false
     private var isGenerating = false
@@ -27,48 +28,56 @@ class AICoreClient(private val context: Context) {
     }
 
     private fun initializeLlm() {
-        if (isInitializing || llmInference != null) return
+        if (isInitializing || llmInference != null || llamaCppBackend?.isReady == true) return
         isInitializing = true
 
         scope.launch(Dispatchers.IO) {
             try {
+                val modelConfig = prefs.selectedModelConfig
                 // Use external storage to avoid filling up the limited internal app data partition (avoiding ENOSPC)
                 val destDir = context.getExternalFilesDir(null) ?: context.filesDir
-                val modelFile = java.io.File(destDir, "gemma-2b.bin")
+                val modelFile = java.io.File(destDir, modelConfig.fileName)
                 
-                // The Gemma 2B CPU int4 model is ~1.34GB.
-                if (!modelFile.exists() || modelFile.length() < 1300000000L) { // Redownload if corrupt, partial, or empty
+                // Redownload if corrupt, partial, or empty
+                if (!modelFile.exists() || modelFile.length() < modelConfig.minFileSize) {
                     if (modelFile.exists()) {
                         modelFile.delete() // Clean up the corrupted/partial file
                     }
                     if (isUnmeteredNetwork()) {
                         downloadModel(modelFile)
                     } else {
-                        // Throw specifically so MainActivity can catch it and show the cellular prompt
                         throw Exception("CELLULAR_DOWNLOAD_REQUIRED")
                     }
                 }
 
-                val options = LlmInference.LlmInferenceOptions.builder()
-                    .setModelPath(modelFile.absolutePath)
-                    .setMaxTokens(1024)
-                    .setTopK(40)
-                    .setTemperature(0.7f)
-                    .setResultListener { partialResult, done ->
-                        // Streaming results
+                when (modelConfig.backend) {
+                    ModelConfig.Backend.LLAMA_CPP -> {
+                        val backend = LlamaCppBackend(context)
+                        if (backend.loadModel(modelFile.absolutePath)) {
+                            llamaCppBackend = backend
+                            Log.d(TAG, "llama.cpp backend initialized: ${modelConfig.displayName}")
+                        } else {
+                            throw Exception("Failed to load GGUF model via llama.cpp")
+                        }
                     }
-                    .setErrorListener { error ->
-                        Log.e(TAG, "LlmInference Error: " + error.message)
-                    }
-                    .build()
+                    ModelConfig.Backend.MEDIAPIPE -> {
+                        val options = LlmInference.LlmInferenceOptions.builder()
+                            .setModelPath(modelFile.absolutePath)
+                            .setMaxTokens(1024)
+                            .setTopK(40)
+                            .setTemperature(0.7f)
+                            .setResultListener { partialResult, done -> }
+                            .setErrorListener { error ->
+                                Log.e(TAG, "LlmInference Error: " + error.message)
+                            }
+                            .build()
 
-                llmInference = LlmInference.createFromOptions(context, options)
-                Log.d(TAG, "MediaPipe LlmInference initialized for on-device inference.")
+                        llmInference = LlmInference.createFromOptions(context, options)
+                        Log.d(TAG, "MediaPipe LlmInference initialized: ${modelConfig.displayName}")
+                    }
+                }
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to initialize LlmInference (MediaPipe): " + e.message, e)
-                // We purposefully do NOT throw 'e' here. Throwing inside a CoroutineScope(Dispatchers.IO) 
-                // causes a FATAL EXCEPTION and crashes the app. 
-                // MainActivity's checkAiCoreStatus will natively catch that llmInference is null.
+                Log.e(TAG, "Failed to initialize model: " + e.message, e)
             } finally {
                 isInitializing = false
             }
@@ -91,10 +100,35 @@ class AICoreClient(private val context: Context) {
      * Public method to explicitly start the download (e.g. after user agrees to cellular warning)
      */
     fun startDownloadExplicitly() {
+        val modelConfig = prefs.selectedModelConfig
         val destDir = context.getExternalFilesDir(null) ?: context.filesDir
-        val modelFile = java.io.File(destDir, "gemma-2b.bin")
+        val modelFile = java.io.File(destDir, modelConfig.fileName)
         scope.launch(Dispatchers.IO) {
             downloadModel(modelFile)
+        }
+    }
+
+    /**
+     * Unloads the active inference engine from RAM to reclaim system memory.
+     */
+    fun unloadModel() {
+        try {
+            llmInference?.close()
+            llmInference = null
+            llamaCppBackend?.close()
+            llamaCppBackend = null
+            Log.d(TAG, "Model successfully unloaded from RAM.")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error unloading model", e)
+        }
+    }
+
+    /**
+     * Reloads the model into RAM if it was previously unloaded.
+     */
+    fun reloadModel() {
+        if (llmInference == null && llamaCppBackend?.isReady != true && !isInitializing && !isDownloading) {
+            initializeLlm()
         }
     }
 
@@ -107,10 +141,10 @@ class AICoreClient(private val context: Context) {
     private fun downloadModel(targetFile: java.io.File) {
         isDownloading = true
         downloadProgress = 0
-        Log.d(TAG, "Downloading Gemini Nano model to internal storage...")
+        val modelConfig = prefs.selectedModelConfig
+        Log.d(TAG, "Downloading model: ${modelConfig.displayName} to storage...")
         
-        // HuggingFace open-source mirror for MediaPipe .bin layout
-        var currentUrl = java.net.URL("https://huggingface.co/ASahu16/gemma/resolve/main/gemma-2b-it-cpu-int4.bin") 
+        var currentUrl = java.net.URL(modelConfig.downloadUrl) 
         var connection = currentUrl.openConnection() as java.net.HttpURLConnection
         connection.instanceFollowRedirects = false
         
@@ -207,13 +241,15 @@ class AICoreClient(private val context: Context) {
 
     fun generateResponse(userPrompt: String, screenContext: String?, image: Bitmap?, callback: ResponseCallback) {
         val currentLlm = llmInference
-        if (currentLlm == null) {
+        val currentLlama = llamaCppBackend
+        
+        if (currentLlm == null && currentLlama?.isReady != true) {
             if (isDownloading) {
                 callback.onError(Exception("Downloading LLM... $downloadProgress% complete. Please wait."))
             } else if (isInitializing) {
                 callback.onError(Exception("Initializing LLM Engine..."))
             } else {
-                callback.onError(Exception("MediaPipe LlmInference failed to initialize. Check logs."))
+                callback.onError(Exception("No model loaded. Select and download a model in Settings."))
             }
             return
         }
@@ -240,17 +276,39 @@ class AICoreClient(private val context: Context) {
                 }
                 return@launch
             }
-            
-            processQueueItem(currentLlm, finalPrompt, callback)
+
+            // Route to the active backend
+            if (currentLlama?.isReady == true) {
+                isGenerating = true
+                currentLlama.generateResponse(finalPrompt, object : InferenceBackend.ResponseCallback {
+                    override fun onSuccess(response: String, generationTimeMs: Long) {
+                        val durationSecs = generationTimeMs / 1000.0
+                        val formatted = response + "\n\n[Generation Time: " + String.format("%.1f", durationSecs) + "s]"
+                        callback.onSuccess(formatted)
+                        isGenerating = false
+                    }
+                    override fun onError(t: Throwable) {
+                        callback.onError(t)
+                        isGenerating = false
+                    }
+                })
+            } else if (currentLlm != null) {
+                processQueueItem(currentLlm, finalPrompt, callback)
+            }
         }
     }
 
     private suspend fun processQueueItem(currentLlm: LlmInference, prompt: String, callback: ResponseCallback) {
         isGenerating = true
         try {
+            val startTimeMs = System.currentTimeMillis()
             val response = currentLlm.generateResponse(prompt)
+            val endTimeMs = System.currentTimeMillis()
+            val durationSecs = (endTimeMs - startTimeMs) / 1000.0
+            val formattedResponse = response + "\n\n[Generation Time: " + String.format("%.1f", durationSecs) + "s]"
+
             scope.launch(Dispatchers.Main) {
-                callback.onSuccess(response)
+                callback.onSuccess(formattedResponse)
             }
         } catch (e: Exception) {
             Log.e(TAG, "MediaPipe Generate Error", e)

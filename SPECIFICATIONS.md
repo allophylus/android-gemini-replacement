@@ -27,8 +27,11 @@
 *   **Framework**: Native Android (Java/Kotlin).
 *   **Entry Point**: Implements `VoiceInteractionService` to register as the OS-level Default Digital Assistant.
 *   **Screen Awareness**: Uses the `AssistStructure` API to read the currently active screen context when invoked.
-*   **Inference Engine Bridge**: An abstraction layer (`AICoreClient`) over the MediaPipe GenAI SDK (LlmInference). Later adaptable to API-based endpoints or ONNX runtime for cross-platform.
-*   **Storage Layer**: Standard Android SQLite combined with an embedded Vector Search extension (e.g., `sqlite-vec`).
+*   **Inference Engine Bridge**: A dual-backend abstraction layer (`AICoreClient`) supporting:
+    *   **MediaPipe GenAI SDK** (LlmInference) for TFLite models (Gemma family).
+    *   **llama.cpp** (via JNI/NDK) for GGUF models (Moondream2, SmolVLM, Qwen2-VL, Phi-3.5). Compiled from source as a git submodule.
+    *   Backend is auto-selected based on the chosen model's `ModelConfig.backend` enum.
+*   **Tool Use**: LLM can execute device actions via command tags (`[LAUNCH:]`, `[SEARCH:]`) parsed by `ToolExecutor`.
 
 ### 3.2. Cross-Platform Abstraction Strategy
 To ensure portability to iOS and OpenClaw:

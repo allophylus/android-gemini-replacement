@@ -21,6 +21,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 public class MainActivity extends Activity {
     private PreferencesManager prefs;
+    private EncryptedPrefsManager encryptedPrefs;
     private AICoreClient aiClient;
     private LinearLayout chatHistory;
     private EditText chatInput;
@@ -29,11 +30,13 @@ public class MainActivity extends Activity {
     private TextView assistCheck;
     private TextView aiCheck;
     private SwipeRefreshLayout swipeRefresh;
+    private int exchangeCount = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         prefs = new PreferencesManager(this);
+        encryptedPrefs = new EncryptedPrefsManager(this);
         aiClient = new AICoreClient(this);
 
         swipeRefresh = new SwipeRefreshLayout(this);
@@ -267,6 +270,7 @@ public class MainActivity extends Activity {
 
         chatInput = new EditText(this);
         chatInput.setHint("Ask Mate anything...");
+        chatInput.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
         LinearLayout.LayoutParams inputParams = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT,
                 1.0f);
         inputArea.addView(chatInput, inputParams);
@@ -289,13 +293,158 @@ public class MainActivity extends Activity {
         TextView header = new TextView(this);
         header.setText("Settings & Personalization");
         header.setTextSize(18f);
-        header.setPadding(0, 0, 0, 32);
+        header.setPadding(0, 0, 0, 16);
         layout.addView(header);
 
+        // ===== AI Model Selection =====
+        TextView modelHeader = new TextView(this);
+        modelHeader.setText("AI Model");
+        modelHeader.setTextSize(16f);
+        modelHeader.setPadding(0, 8, 0, 8);
+        layout.addView(modelHeader);
+
+        ModelConfig[] models = ModelConfig.getAvailableModels();
+        String[] modelDisplayNames = new String[models.length];
+        for (int i = 0; i < models.length; i++) {
+            modelDisplayNames[i] = models[i].getFormattedName();
+        }
+
+        android.widget.Spinner modelSpinner = new android.widget.Spinner(this);
+        android.widget.ArrayAdapter<String> modelAdapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, modelDisplayNames);
+        modelSpinner.setAdapter(modelAdapter);
+
+        String currentModel = prefs.getSelectedModel();
+        for (int i = 0; i < models.length; i++) {
+            if (models[i].displayName.equals(currentModel)) {
+                modelSpinner.setSelection(i);
+                break;
+            }
+        }
+
+        TextView modelDescView = new TextView(this);
+        ModelConfig currentConfig = ModelConfig.findByName(currentModel);
+        String backendLabel = currentConfig.backend == ModelConfig.Backend.LLAMA_CPP ? "Engine: llama.cpp" : "Engine: MediaPipe";
+        modelDescView.setText(currentConfig.description + "\n" + backendLabel);
+        modelDescView.setAlpha(0.7f);
+        modelDescView.setPadding(0, 4, 0, 8);
+
+        modelSpinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+                prefs.setSelectedModel(models[position].displayName);
+                String bLabel = models[position].backend == ModelConfig.Backend.LLAMA_CPP ? "Engine: llama.cpp" : "Engine: MediaPipe";
+                modelDescView.setText(models[position].description + "\n" + bLabel);
+            }
+            @Override
+            public void onNothingSelected(android.widget.AdapterView<?> parent) {}
+        });
+        layout.addView(modelSpinner);
+        layout.addView(modelDescView);
+
+        Button downloadModelBtn = new Button(this);
+        downloadModelBtn.setText("Download Selected Model");
+        downloadModelBtn.setOnClickListener(v -> {
+            aiClient.unloadModel(); // Clear old model first
+            aiClient.startDownloadExplicitly();
+            addChatMessage("System", "Downloading " + prefs.getSelectedModel() + "...");
+        });
+        layout.addView(downloadModelBtn);
+
+        // ===== Personality Section =====
+        TextView persHeader = new TextView(this);
+        persHeader.setText("\nPersonality");
+        persHeader.setTextSize(16f);
+        layout.addView(persHeader);
+        // Personality Type Dropdown
+        TextView personalityLabel = new TextView(this);
+        personalityLabel.setText("Core Personality Style:");
+        personalityLabel.setPadding(0, 16, 0, 8);
+        layout.addView(personalityLabel);
+
+        android.widget.Spinner personalitySpinner = new android.widget.Spinner(this);
+        String[] personalityOptions = { "Helpful", "Funny", "Sad", "Happy", "Childish", "Sarcastic", "Professional" };
+        android.widget.ArrayAdapter<String> persAdapter = new android.widget.ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_dropdown_item, personalityOptions);
+        personalitySpinner.setAdapter(persAdapter);
+
+        String currentPers = prefs.getPersonality();
+        for (int i = 0; i < personalityOptions.length; i++) {
+            if (personalityOptions[i].equals(currentPers)) {
+                personalitySpinner.setSelection(i);
+                break;
+            }
+        }
+        personalitySpinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+                prefs.setPersonality(personalityOptions[position]);
+            }
+
+            @Override
+            public void onNothingSelected(android.widget.AdapterView<?> parent) {
+            }
+        });
+        layout.addView(personalitySpinner);
+
         // Personality Sliders
+        layout.addView(createTraitView("Personality Intensity", prefs.getPersonalityIntensity(),
+                (v) -> prefs.setPersonalityIntensity(v)));
         layout.addView(createTraitView("Verbosity", prefs.getVerbosity(), (v) -> prefs.setVerbosity(v)));
         layout.addView(createTraitView("Formality", prefs.getFormality(), (v) -> prefs.setFormality(v)));
         layout.addView(createTraitView("Humor", prefs.getHumor(), (v) -> prefs.setHumor(v)));
+
+        // Voice Engine Gender
+        TextView voiceLabel = new TextView(this);
+        voiceLabel.setText("TTS Voice Gender:");
+        voiceLabel.setPadding(0, 16, 0, 8);
+        layout.addView(voiceLabel);
+
+        android.widget.Spinner voiceSpinner = new android.widget.Spinner(this);
+        String[] voiceOptions = { "Female", "Male" };
+        android.widget.ArrayAdapter<String> voiceAdapter = new android.widget.ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_dropdown_item, voiceOptions);
+        voiceSpinner.setAdapter(voiceAdapter);
+
+        String currentVoice = prefs.getVoiceGender();
+        voiceSpinner.setSelection(currentVoice.equals("Male") ? 1 : 0);
+        voiceSpinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+                prefs.setVoiceGender(voiceOptions[position]);
+            }
+
+            @Override
+            public void onNothingSelected(android.widget.AdapterView<?> parent) {
+            }
+        });
+        layout.addView(voiceSpinner);
+
+        // Long-Term Memory Vault
+        TextView memoryTitle = new TextView(this);
+        memoryTitle.setText("\nLong-Term Memory Vault");
+        memoryTitle.setTextSize(16f);
+        layout.addView(memoryTitle);
+
+        layout.addView(
+                createMemoryInput("Your Name", encryptedPrefs.getUserName(), v -> encryptedPrefs.saveUserName(v)));
+        layout.addView(
+                createMemoryInput("Date of Birth", encryptedPrefs.getUserDob(), v -> encryptedPrefs.saveUserDob(v)));
+        layout.addView(createMemoryInput("Family Members/Pets", encryptedPrefs.getFamilyMembers(),
+                v -> encryptedPrefs.saveFamilyMembers(v)));
+
+        // Model Management
+        TextView modelTitle = new TextView(this);
+        modelTitle.setText("\nModel Management");
+        modelTitle.setTextSize(16f);
+        layout.addView(modelTitle);
+
+        Button unloadBtn = new Button(this);
+        unloadBtn.setText("Free Model from RAM");
+        unloadBtn.setOnClickListener(v -> {
+            aiClient.unloadModel();
+            addChatMessage("System", "Gemini Nano model securely unloaded from active RAM.");
+        });
+        layout.addView(unloadBtn);
 
         // System Settings
         Button assistantSettings = new Button(this);
@@ -339,17 +488,138 @@ public class MainActivity extends Activity {
         addChatMessage("You", query);
         chatInput.setText("");
 
-        aiClient.generateResponse(query, "", new AICoreClient.ResponseCallback() {
-            @Override
-            public void onSuccess(String response) {
-                runOnUiThread(() -> addChatMessage("Mate", response));
+        // Handle Web Scraping
+        if (query.startsWith("http://") || query.startsWith("https://")) {
+            addChatMessage("System", "Fetching website content...");
+            new Thread(() -> {
+                String extractedText = WebScraper.fetchAndExtractText(query);
+                if (extractedText.startsWith("Error")) {
+                    runOnUiThread(() -> addChatMessage("Error", extractedText));
+                    return;
+                }
+
+                String maxText = extractedText.length() > 2500 ? extractedText.substring(0, 2500) : extractedText; // Prevent
+                                                                                                                   // Context
+                                                                                                                   // OOM
+                String summarizePrompt = "Provide a concise summary of the key facts from this webpage text: "
+                        + maxText;
+
+                aiClient.generateResponse(summarizePrompt, "", new AICoreClient.ResponseCallback() {
+                    @Override
+                    public void onSuccess(String response) {
+                        runOnUiThread(() -> {
+                            addChatMessage("Mate (Web Summary)", response);
+                            // Store in Long-Term Memory implicitly
+                            encryptedPrefs.saveUserDob(encryptedPrefs.getUserDob() + " [Web Memory: " + response + "]");
+                        });
+                    }
+
+                    @Override
+                    public void onError(Throwable t) {
+                        runOnUiThread(() -> addChatMessage("Error", t.getMessage()));
+                    }
+                });
+            }).start();
+            return;
+        }
+
+        // Standard Chat
+        exchangeCount++;
+
+        if (exchangeCount >= 5) {
+            // Trigger Context Compaction
+            StringBuilder fullContext = new StringBuilder();
+            for (int i = 0; i < chatHistory.getChildCount(); i++) {
+                View v = chatHistory.getChildAt(i);
+                if (v instanceof TextView) {
+                    fullContext.append(((TextView) v).getText().toString()).append("\n");
+                }
             }
 
-            @Override
-            public void onError(Throwable t) {
-                runOnUiThread(() -> addChatMessage("Error", t.getMessage()));
-            }
-        });
+            String condensePrompt = "Summarize the key facts and topics discussed in this conversation: \n"
+                    + fullContext.toString();
+            addChatMessage("System", "Condensing conversation memory to save RAM...");
+
+            aiClient.generateResponse(condensePrompt, "", new AICoreClient.ResponseCallback() {
+                @Override
+                public void onSuccess(String summary) {
+                    runOnUiThread(() -> {
+                        chatHistory.removeAllViews();
+                        addChatMessage("System [Compacted Memory]", summary);
+                        exchangeCount = 0; // Reset
+
+                        // Proceed with the actual user query now that memory is cleared
+                        aiClient.generateResponse(query, summary, new AICoreClient.ResponseCallback() {
+                            @Override
+                            public void onSuccess(String response) {
+                                runOnUiThread(() -> addChatMessage("Mate", response));
+                            }
+
+                            @Override
+                            public void onError(Throwable t) {
+                                runOnUiThread(() -> addChatMessage("Error", t.getMessage()));
+                            }
+                        });
+                    });
+                }
+
+                @Override
+                public void onError(Throwable t) {
+                    runOnUiThread(() -> addChatMessage("Error", "Compaction Failed: " + t.getMessage()));
+                }
+            });
+        } else {
+            // Normal message flow
+            aiClient.generateResponse(query, "", new AICoreClient.ResponseCallback() {
+                @Override
+                public void onSuccess(String response) {
+                    runOnUiThread(() -> handleToolResponse(response));
+                }
+
+                @Override
+                public void onError(Throwable t) {
+                    runOnUiThread(() -> addChatMessage("Error", t.getMessage()));
+                }
+            });
+        }
+    }
+
+    private void handleToolResponse(String response) {
+        // 1. Check for LAUNCH command
+        boolean launched = ToolExecutor.handleLaunch(this, response);
+        
+        // 2. Check for SEARCH command
+        String searchQuery = ToolExecutor.extractSearchQuery(response);
+        
+        // 3. Display cleaned response
+        String cleanResponse = ToolExecutor.stripCommands(response);
+        if (!cleanResponse.isEmpty()) {
+            addChatMessage("Mate", cleanResponse);
+        }
+        
+        if (launched) {
+            addChatMessage("System", "App launched successfully.");
+        }
+        
+        // 4. If SEARCH was requested, fetch results and feed back to LLM
+        if (searchQuery != null) {
+            addChatMessage("System", "Searching the web for: " + searchQuery + "...");
+            new Thread(() -> {
+                String results = ToolExecutor.searchWeb(searchQuery);
+                String followUpPrompt = "Here are web search results. Summarize the most relevant information for the user:\n\n" + results;
+                
+                aiClient.generateResponse(followUpPrompt, "", new AICoreClient.ResponseCallback() {
+                    @Override
+                    public void onSuccess(String summary) {
+                        runOnUiThread(() -> addChatMessage("Mate (Web)", ToolExecutor.stripCommands(summary)));
+                    }
+                    @Override
+                    public void onError(Throwable t) {
+                        runOnUiThread(() -> addChatMessage("Error", "Search failed: " + t.getMessage()));
+                    }
+                });
+            }).start();
+        }
     }
 
     private void addChatMessage(String sender, String message) {
@@ -399,7 +669,41 @@ public class MainActivity extends Activity {
         return row;
     }
 
+    private LinearLayout createMemoryInput(String label, String currentVal, OnMemoryChangeListener listener) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.VERTICAL);
+        row.setPadding(0, 8, 0, 8);
+        TextView tv = new TextView(this);
+        tv.setText(label);
+        EditText et = new EditText(this);
+        et.setText(currentVal);
+        et.setHint("Enter " + label.toLowerCase());
+        et.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+
+        Button saveBtn = new Button(this);
+        saveBtn.setText("Save");
+        saveBtn.setOnClickListener(v -> {
+            listener.onChanged(et.getText().toString().trim());
+            addChatMessage("System", label + " securely vaulted.");
+        });
+
+        LinearLayout inputRow = new LinearLayout(this);
+        inputRow.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout.LayoutParams param = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT,
+                1.0f);
+        inputRow.addView(et, param);
+        inputRow.addView(saveBtn);
+
+        row.addView(tv);
+        row.addView(inputRow);
+        return row;
+    }
+
     interface OnTraitChangeListener {
         void onChanged(int value);
+    }
+
+    interface OnMemoryChangeListener {
+        void onChanged(String value);
     }
 }

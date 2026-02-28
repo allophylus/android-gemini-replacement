@@ -35,6 +35,16 @@ android {
     kotlinOptions {
         jvmTarget = '1.8'
     }
+
+    // llama.cpp native build via CMake + NDK
+    externalNativeBuild {
+        cmake {
+            path "src/main/cpp/CMakeLists.txt"
+            version "3.22.1"
+        }
+    }
+
+    ndkVersion "26.1.10909125"
 }
 
 dependencies {
@@ -55,6 +65,12 @@ dependencies {
     
     // SQLite for local memory
     implementation "androidx.sqlite:sqlite:2.4.0"
+    
+    // Encrypted Shared Preferences
+    implementation "androidx.security:security-crypto:1.1.0-alpha06"
+
+    // Jsoup for Native Web Scraping (No API)
+    implementation 'org.jsoup:jsoup:1.17.2'
     
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'

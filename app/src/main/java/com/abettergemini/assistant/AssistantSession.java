@@ -33,13 +33,13 @@ public class AssistantSession extends VoiceInteractionSession {
         super(context);
         this.aiClient = new AICoreClient(context);
         this.memory = new MemoryManager(context);
-        this.voice = new VoiceManager(context);
+        this.voice = new VoiceManager(context, new PreferencesManager(context));
     }
 
     @Override
     public View onCreateContentView() {
         rootLayout = new FrameLayout(getContext());
-        
+
         // 1. Cozy Backdrop (Day/Night logic)
         updateTheme();
 
@@ -85,9 +85,8 @@ public class AssistantSession extends VoiceInteractionSession {
         contentLayout.addView(micIndicator);
 
         FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, 
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        );
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
         params.gravity = Gravity.BOTTOM;
         rootLayout.addView(contentLayout, params);
 
@@ -97,7 +96,7 @@ public class AssistantSession extends VoiceInteractionSession {
     private void updateTheme() {
         int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
         boolean isNight = (hour < 6 || hour > 18);
-        
+
         // Cozy Background based on time
         if (isNight) {
             rootLayout.setBackgroundColor(Color.parseColor("#1A1A2E")); // Deep Midnight
@@ -126,7 +125,8 @@ public class AssistantSession extends VoiceInteractionSession {
         try {
             // Check for screenshot in older API or via reflection if necessary
             // In SDK 34, it's typically part of the AssistState if allowed
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
 
         setIndicatorStatus(true);
         thinkingBar.setVisibility(View.VISIBLE);
@@ -142,11 +142,12 @@ public class AssistantSession extends VoiceInteractionSession {
         }
 
         String combinedContext = String.join("\n", screenText);
-        
-        // Vision Logic: If screenshot is available, we could pass it to a Vision-capable model
+
+        // Vision Logic: If screenshot is available, we could pass it to a
+        // Vision-capable model
         // For now, we continue with text-based analysis of the screen structure.
         String dummyPrompt = "Analyze this screen.";
-        
+
         aiClient.generateResponse(dummyPrompt, combinedContext, new AICoreClient.ResponseCallback() {
             @Override
             public void onSuccess(String response) {
@@ -174,7 +175,8 @@ public class AssistantSession extends VoiceInteractionSession {
     }
 
     private void parseNode(AssistStructure.ViewNode node, List<String> textList) {
-        if (node == null) return;
+        if (node == null)
+            return;
         CharSequence text = node.getText();
         if (text != null && text.length() > 0) {
             textList.add(text.toString());
