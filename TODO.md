@@ -13,6 +13,7 @@ A 100% local, privacy-first Android assistant that replaces Google Gemini/Assist
 - [x] **Ambient Themes**: Day/Night cycle and "Cozy Office" status indicators.
 - [x] **Local Memory (RAG Skeleton)**: SQLite integration for facts and history.
 - [x] **Bargain Hunter Table**: Specialized storage for detected prices/items.
+- [x] **Manifest Integration**: Initialized separate project for OpenClaw cost orchestration.
 - [ ] **Custom Wake Word Detection**: Implementation of `AlwaysOnHotwordDetector` with local fallback (Porcupine/openWakeWord).
 - [ ] **Advanced RAG Engine**: Implement `sqlite-vec` for semantic search on local facts.
 - [ ] **ClawControl Integration**: Research potential for bridging with the ClawControl UI/API for remote management.
