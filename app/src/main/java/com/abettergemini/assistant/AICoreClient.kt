@@ -19,6 +19,7 @@ class AICoreClient(private val context: Context) {
     private var llmInference: LlmInference? = null
     private var isInitializing = false
     private var isDownloading = false
+    private var isGenerating = false
     private var downloadProgress = 0
 
     init {
@@ -228,6 +229,14 @@ class AICoreClient(private val context: Context) {
         promptBuilder.append(userPrompt)
 
         scope.launch(Dispatchers.IO) {
+            if (isGenerating) {
+                scope.launch(Dispatchers.Main) {
+                    callback.onError(Exception("Still generating previous response. Please wait..."))
+                }
+                return@launch
+            }
+            
+            isGenerating = true
             try {
                 val response = currentLlm.generateResponse(promptBuilder.toString())
                 scope.launch(Dispatchers.Main) {
@@ -238,6 +247,8 @@ class AICoreClient(private val context: Context) {
                 scope.launch(Dispatchers.Main) {
                     callback.onError(e)
                 }
+            } finally {
+                isGenerating = false
             }
         }
     }
