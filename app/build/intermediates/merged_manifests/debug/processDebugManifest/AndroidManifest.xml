@@ -30,8 +30,7 @@
         android:appComponentFactory="androidx.core.app.CoreComponentFactory"
         android:debuggable="true"
         android:extractNativeLibs="false"
-        android:label="Mate"
-        android:testOnly="true" >
+        android:label="Mate" >
         <activity
             android:name="com.abettergemini.assistant.MainActivity"
             android:exported="true"

@@ -15,6 +15,7 @@ MERGED from [com.google.android.gms:play-services-tasks:18.1.0] /Users/fen/.grad
 MERGED from [com.google.android.gms:play-services-basement:18.3.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/f66de0a3f339bd41f01b6e58588764a4/transformed/play-services-basement-18.3.0/AndroidManifest.xml:16:1-26:12
 MERGED from [androidx.fragment:fragment:1.3.6] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/e0e3854ae35facce311ac0d2249cdc18/transformed/fragment-1.3.6/AndroidManifest.xml:17:1-24:12
 MERGED from [androidx.activity:activity:1.8.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/67e5f265c6c59b4820b10a5261f96262/transformed/activity-1.8.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.swiperefreshlayout:swiperefreshlayout:1.1.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/8936fb1ff8d6f7213f9f5ba668f4acbc/transformed/swiperefreshlayout-1.1.0/AndroidManifest.xml:17:1-24:12
 MERGED from [androidx.media:media:1.6.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/9fb8d0b59ae2964a406cbb835b60c938/transformed/media-1.6.0/AndroidManifest.xml:17:1-24:12
 MERGED from [androidx.emoji2:emoji2-views-helper:1.2.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/7904c155b83db12f951b8035db8fb83d/transformed/emoji2-views-helper-1.2.0/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.emoji2:emoji2:1.2.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/017e281317b867ced7b078d8ac12431c/transformed/emoji2-1.2.0/AndroidManifest.xml:17:1-35:12
@@ -42,6 +43,7 @@ MERGED from [androidx.annotation:annotation-experimental:1.3.0] /Users/fen/.grad
 MERGED from [com.google.mediapipe:tasks-genai:0.10.14] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/cd97c10732258a904f04ec497b280f6b/transformed/tasks-genai-0.10.14/AndroidManifest.xml:2:1-9:12
 MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/5eed834814777242a45d160c0f50f6c1/transformed/cursoradapter-1.0.0/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.cardview:cardview:1.0.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/666959b550cb3e4fc74232be44468b54/transformed/cardview-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.interpolator:interpolator:1.0.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/c2a6e733bc8dfe16ab9fccc38b2796da/transformed/interpolator-1.0.0/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/b6f429c7f8a54d39f4a582db0e917665/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:17:1-27:12
 MERGED from [androidx.profileinstaller:profileinstaller:1.3.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/4ed041c2fbfd8a4f128a736980b9c8e7/transformed/profileinstaller-1.3.0/AndroidManifest.xml:17:1-55:12
 MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/fdfacc16e5b93a7b30cc74571a672f7a/transformed/startup-runtime-1.1.1/AndroidManifest.xml:17:1-33:12
@@ -50,7 +52,6 @@ MERGED from [com.google.mediapipe:tasks-core:0.10.14] /Users/fen/.gradle/caches/
 MERGED from [com.google.android.datatransport:transport-backend-cct:3.1.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/5179476ebcc3ca4948518dbffe0a2b0d/transformed/transport-backend-cct-3.1.0/AndroidManifest.xml:15:1-38:12
 MERGED from [com.google.android.datatransport:transport-runtime:3.1.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/d134bc8cafb676769516cde4df2f946c/transformed/transport-runtime-3.1.0/AndroidManifest.xml:15:1-41:12
 MERGED from [com.google.android.datatransport:transport-api:3.0.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/68d6908a9f8c8e36d63fe62caa60a93b/transformed/transport-api-3.0.0/AndroidManifest.xml:15:1-22:12
-MERGED from [androidx.interpolator:interpolator:1.0.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/c2a6e733bc8dfe16ab9fccc38b2796da/transformed/interpolator-1.0.0/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.arch.core:core-runtime:2.2.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/bde7f3aa9ff5a3bb36ff6c5fa0c0e292/transformed/core-runtime-2.2.0/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.documentfile:documentfile:1.0.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/8bc5203f5396aaf4366558e01b8eb26e/transformed/documentfile-1.0.0/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.localbroadcastmanager:localbroadcastmanager:1.0.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/e62cb7e86a0f9589d53b27ec1bf86e27/transformed/localbroadcastmanager-1.0.0/AndroidManifest.xml:17:1-22:12
@@ -195,6 +196,8 @@ MERGED from [androidx.fragment:fragment:1.3.6] /Users/fen/.gradle/caches/9.0-mil
 MERGED from [androidx.fragment:fragment:1.3.6] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/e0e3854ae35facce311ac0d2249cdc18/transformed/fragment-1.3.6/AndroidManifest.xml:20:5-22:41
 MERGED from [androidx.activity:activity:1.8.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/67e5f265c6c59b4820b10a5261f96262/transformed/activity-1.8.0/AndroidManifest.xml:20:5-44
 MERGED from [androidx.activity:activity:1.8.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/67e5f265c6c59b4820b10a5261f96262/transformed/activity-1.8.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.swiperefreshlayout:swiperefreshlayout:1.1.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/8936fb1ff8d6f7213f9f5ba668f4acbc/transformed/swiperefreshlayout-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.swiperefreshlayout:swiperefreshlayout:1.1.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/8936fb1ff8d6f7213f9f5ba668f4acbc/transformed/swiperefreshlayout-1.1.0/AndroidManifest.xml:20:5-22:41
 MERGED from [androidx.media:media:1.6.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/9fb8d0b59ae2964a406cbb835b60c938/transformed/media-1.6.0/AndroidManifest.xml:20:5-22:41
 MERGED from [androidx.media:media:1.6.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/9fb8d0b59ae2964a406cbb835b60c938/transformed/media-1.6.0/AndroidManifest.xml:20:5-22:41
 MERGED from [androidx.emoji2:emoji2-views-helper:1.2.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/7904c155b83db12f951b8035db8fb83d/transformed/emoji2-views-helper-1.2.0/AndroidManifest.xml:5:5-44
@@ -249,6 +252,8 @@ MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] /Users/fen/.gradle/cach
 MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/5eed834814777242a45d160c0f50f6c1/transformed/cursoradapter-1.0.0/AndroidManifest.xml:20:5-44
 MERGED from [androidx.cardview:cardview:1.0.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/666959b550cb3e4fc74232be44468b54/transformed/cardview-1.0.0/AndroidManifest.xml:20:5-44
 MERGED from [androidx.cardview:cardview:1.0.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/666959b550cb3e4fc74232be44468b54/transformed/cardview-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.interpolator:interpolator:1.0.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/c2a6e733bc8dfe16ab9fccc38b2796da/transformed/interpolator-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.interpolator:interpolator:1.0.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/c2a6e733bc8dfe16ab9fccc38b2796da/transformed/interpolator-1.0.0/AndroidManifest.xml:20:5-44
 MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/b6f429c7f8a54d39f4a582db0e917665/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:20:5-22:41
 MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/b6f429c7f8a54d39f4a582db0e917665/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:20:5-22:41
 MERGED from [androidx.profileinstaller:profileinstaller:1.3.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/4ed041c2fbfd8a4f128a736980b9c8e7/transformed/profileinstaller-1.3.0/AndroidManifest.xml:21:5-44
@@ -265,8 +270,6 @@ MERGED from [com.google.android.datatransport:transport-runtime:3.1.0] /Users/fe
 MERGED from [com.google.android.datatransport:transport-runtime:3.1.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/d134bc8cafb676769516cde4df2f946c/transformed/transport-runtime-3.1.0/AndroidManifest.xml:18:5-20:41
 MERGED from [com.google.android.datatransport:transport-api:3.0.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/68d6908a9f8c8e36d63fe62caa60a93b/transformed/transport-api-3.0.0/AndroidManifest.xml:18:5-20:41
 MERGED from [com.google.android.datatransport:transport-api:3.0.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/68d6908a9f8c8e36d63fe62caa60a93b/transformed/transport-api-3.0.0/AndroidManifest.xml:18:5-20:41
-MERGED from [androidx.interpolator:interpolator:1.0.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/c2a6e733bc8dfe16ab9fccc38b2796da/transformed/interpolator-1.0.0/AndroidManifest.xml:20:5-44
-MERGED from [androidx.interpolator:interpolator:1.0.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/c2a6e733bc8dfe16ab9fccc38b2796da/transformed/interpolator-1.0.0/AndroidManifest.xml:20:5-44
 MERGED from [androidx.arch.core:core-runtime:2.2.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/bde7f3aa9ff5a3bb36ff6c5fa0c0e292/transformed/core-runtime-2.2.0/AndroidManifest.xml:20:5-44
 MERGED from [androidx.arch.core:core-runtime:2.2.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/bde7f3aa9ff5a3bb36ff6c5fa0c0e292/transformed/core-runtime-2.2.0/AndroidManifest.xml:20:5-44
 MERGED from [androidx.documentfile:documentfile:1.0.0] /Users/fen/.gradle/caches/9.0-milestone-1/transforms/8bc5203f5396aaf4366558e01b8eb26e/transformed/documentfile-1.0.0/AndroidManifest.xml:20:5-44

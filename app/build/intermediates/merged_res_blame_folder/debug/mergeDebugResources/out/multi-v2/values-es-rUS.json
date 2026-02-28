@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.abettergemini.assistant.app-mergeDebugResources-33:/values-es-rUS/values-es-rUS.xml",
+            "outputFile": "com.abettergemini.assistant.app-mergeDebugResources-34:/values-es-rUS/values-es-rUS.xml",
             "map": [
                 {
                     "source": "/Users/fen/.gradle/caches/9.0-milestone-1/transforms/f6ab066b74a38e5803e36566af0211c7/transformed/play-services-base-18.4.0/res/values-es-rUS/values.xml",

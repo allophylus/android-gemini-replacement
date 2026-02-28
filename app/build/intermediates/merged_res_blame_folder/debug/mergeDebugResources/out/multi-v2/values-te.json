@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.abettergemini.assistant.app-mergeDebugResources-33:/values-te/values-te.xml",
+            "outputFile": "com.abettergemini.assistant.app-mergeDebugResources-34:/values-te/values-te.xml",
             "map": [
                 {
                     "source": "/Users/fen/.gradle/caches/9.0-milestone-1/transforms/facf0ac7aa2a3c2ec27b24e04bca79d1/transformed/material-1.11.0/res/values-te/values-te.xml",

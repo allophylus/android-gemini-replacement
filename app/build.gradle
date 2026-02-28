@@ -45,6 +45,7 @@ dependencies {
     // ML Kit for On-Device Gemini Nano (Stable)
     implementation 'com.google.android.gms:play-services-base:18.4.0'
     implementation 'com.google.mediapipe:tasks-genai:0.10.14'
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
     
     // Local TTS (Piper/Coqui Support)
     implementation 'androidx.media:media:1.6.0'

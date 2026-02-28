@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.abettergemini.assistant.app-mergeDebugResources-33:/values-cs/values-cs.xml",
+            "outputFile": "com.abettergemini.assistant.app-mergeDebugResources-34:/values-cs/values-cs.xml",
             "map": [
                 {
                     "source": "/Users/fen/.gradle/caches/9.0-milestone-1/transforms/c456a8827f08ceb58a20ba12f1f97c23/transformed/appcompat-1.6.1/res/values-cs/values-cs.xml",

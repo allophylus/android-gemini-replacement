@@ -16,6 +16,7 @@ import android.view.View;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.util.Log;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 public class MainActivity extends Activity {
     private PreferencesManager prefs;
@@ -24,6 +25,9 @@ public class MainActivity extends Activity {
     private EditText chatInput;
     private View settingsView;
     private View chatView;
+    private TextView assistCheck;
+    private TextView aiCheck;
+    private SwipeRefreshLayout swipeRefresh;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,10 +35,17 @@ public class MainActivity extends Activity {
         prefs = new PreferencesManager(this);
         aiClient = new AICoreClient(this);
 
-        // Main Container
+        swipeRefresh = new SwipeRefreshLayout(this);
+
+        // Main Container inside a ScrollView so Pull-to-Refresh works reliably
+        ScrollView mainScroll = new ScrollView(this);
+        mainScroll.setFillViewport(true);
+        swipeRefresh.addView(mainScroll);
+
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(Color.parseColor("#F8F9FA"));
+        mainScroll.addView(root);
 
         // Device Check
         checkDeviceCompatibility();
@@ -74,7 +85,14 @@ public class MainActivity extends Activity {
         settingsView.setVisibility(View.GONE);
         root.addView(settingsView);
 
-        setContentView(root);
+        swipeRefresh.setOnRefreshListener(() -> refreshDependencyStatus());
+        setContentView(swipeRefresh);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        refreshDependencyStatus();
     }
 
     private void checkDeviceCompatibility() {
@@ -82,10 +100,7 @@ public class MainActivity extends Activity {
         String manufacturer = android.os.Build.MANUFACTURER;
         Log.d("Mate", "Running on: " + manufacturer + " " + model);
 
-        // Z Fold 7 is cutting edge (Snapdragon 8 Elite) - AICore is definitely
-        // supported
         if (manufacturer.toLowerCase().contains("samsung")) {
-            // Samsung uses "Google AI" branding for AICore
             Log.d("Mate", "Samsung Device Detected. Ensuring AICore integration...");
         }
     }
@@ -102,29 +117,17 @@ public class MainActivity extends Activity {
         title.setPadding(0, 0, 0, 8);
         layout.addView(title);
 
-        // 1. Check Default Assistant
-        TextView assistCheck = new TextView(this);
-        assistCheck.setText("- Mate set as Default Assistant: [Checking...]");
+        assistCheck = new TextView(this);
         layout.addView(assistCheck);
 
-        // 2. Check AICore / Gemini Nano
-        TextView aiCheck = new TextView(this);
-        aiCheck.setText("- Gemini Nano (AICore) Status: [Checking...]");
+        aiCheck = new TextView(this);
         layout.addView(aiCheck);
 
-        // 3. Samsung Fold Specific Info
         TextView infoText = new TextView(this);
         infoText.setText(
                 "\nOn Samsung Fold 7:\n1. Settings > Advanced features > Advanced intelligence\n2. Toggle ON 'Process data only on device'\n3. If missing, clear 'AICore' app cache and restart.");
         infoText.setTextSize(12f);
         layout.addView(infoText);
-
-        // Run checks
-        boolean isDefault = isMateDefaultAssistant();
-        assistCheck.setText("- Mate set as Default Assistant: " + (isDefault ? "✅" : "❌"));
-
-        aiCheck.setText("- Gemini Nano: Checking models...");
-        checkAiCoreStatus(aiCheck);
 
         Button fixBtn = new Button(this);
         fixBtn.setText("Go to Advanced Features");
@@ -142,15 +145,30 @@ public class MainActivity extends Activity {
         });
         layout.addView(fixBtn);
 
+        refreshDependencyStatus();
         return layout;
     }
 
+    private void refreshDependencyStatus() {
+        if (assistCheck == null || aiCheck == null)
+            return;
+
+        boolean isDefault = isMateDefaultAssistant();
+        assistCheck.setText("- Mate set as Default Assistant: " + (isDefault ? "✅" : "❌"));
+
+        aiCheck.setText("- Gemini Nano: Checking models...");
+        checkAiCoreStatus(aiCheck);
+    }
+
     private void checkAiCoreStatus(TextView statusView) {
-        // Attempt a no-op call to see if model is initialized
         aiClient.generateResponse("test", "", new AICoreClient.ResponseCallback() {
             @Override
             public void onSuccess(String response) {
-                runOnUiThread(() -> statusView.setText("- Gemini Nano (AICore): ✅ Ready (Downloaded)"));
+                runOnUiThread(() -> {
+                    statusView.setText("- Gemini Nano (AICore): ✅ Ready (Downloaded)");
+                    if (swipeRefresh != null)
+                        swipeRefresh.setRefreshing(false);
+                });
             }
 
             @Override
@@ -162,6 +180,8 @@ public class MainActivity extends Activity {
                     } else {
                         statusView.setText("- Gemini Nano: ⚠️ Not Ready (" + msg + ")");
                     }
+                    if (swipeRefresh != null)
+                        swipeRefresh.setRefreshing(false);
                 });
             }
         });
