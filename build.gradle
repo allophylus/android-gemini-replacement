@@ -1,21 +1,5 @@
+// Top-level build file
 plugins {
-    id 'com.android.application' version '8.2.0'
-}
-
-android {
-    namespace 'com.openclaw.assistant'
-    compileSdk 34
-
-    defaultConfig {
-        applicationId "com.openclaw.assistant"
-        minSdk 31
-        targetSdk 34
-        versionCode 1
-        versionName "1.0"
-    }
-}
-
-dependencies {
-    // Placeholder for AI Edge SDK / AICore
-    // implementation 'com.google.android.gms:play-services-ai:...'
+    id 'com.android.application' version '8.2.0' apply false
+    id 'com.android.library' version '8.2.0' apply false
 }
