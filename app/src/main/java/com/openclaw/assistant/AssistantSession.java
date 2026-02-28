@@ -11,12 +11,15 @@ import android.view.Gravity;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.ProgressBar;
+import android.graphics.drawable.GradientDrawable;
 import java.util.ArrayList;
 import java.util.List;
 
 public class AssistantSession extends VoiceInteractionSession {
     private static final String TAG = "Mate";
     private TextView resultText;
+    private ProgressBar thinkingBar;
     private AICoreClient aiClient;
     private MemoryManager memory;
 
@@ -28,18 +31,39 @@ public class AssistantSession extends VoiceInteractionSession {
 
     @Override
     public View onCreateContentView() {
+        // Main Container (ClawControl v1.3.1 Inspired)
         LinearLayout layout = new LinearLayout(getContext());
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setGravity(Gravity.BOTTOM);
-        layout.setPadding(32, 32, 32, 32);
-        layout.setBackgroundColor(Color.parseColor("#E0FFFFFF"));
+        layout.setPadding(48, 48, 48, 64);
 
+        // Rounded Background (Modern Slate)
+        GradientDrawable shape = new GradientDrawable();
+        shape.setCornerRadius(64f);
+        shape.setColor(Color.parseColor("#F8F9FA"));
+        layout.setBackground(shape);
+
+        // Thinking Indicator (Claw-style subtle bar)
+        thinkingBar = new ProgressBar(getContext(), null, android.R.attr.progressBarStyleHorizontal);
+        thinkingBar.setIndeterminate(true);
+        thinkingBar.setVisibility(View.VISIBLE);
+        layout.addView(thinkingBar);
+
+        // Response Text
         resultText = new TextView(getContext());
-        resultText.setText("Mate is thinking...");
-        resultText.setTextColor(Color.BLACK);
+        resultText.setText("Mate is listening...");
+        resultText.setTextColor(Color.parseColor("#212529"));
         resultText.setTextSize(18f);
-
+        resultText.setPadding(0, 24, 0, 24);
         layout.addView(resultText);
+
+        // Dictation Pulse Placeholder (Microphone visual)
+        TextView micIndicator = new TextView(getContext());
+        micIndicator.setText("🎤");
+        micIndicator.setGravity(Gravity.CENTER);
+        micIndicator.setTextSize(24f);
+        layout.addView(micIndicator);
+
         return layout;
     }
 
@@ -48,7 +72,8 @@ public class AssistantSession extends VoiceInteractionSession {
         super.onHandleAssist(state);
         AssistStructure structure = state.getAssistStructure();
 
-        Log.d(TAG, "Assist triggered. Parsing screen content...");
+        thinkingBar.setVisibility(View.VISIBLE);
+        resultText.setText("Mate is thinking...");
 
         List<String> screenText = new ArrayList<>();
         if (structure != null) {
@@ -60,37 +85,37 @@ public class AssistantSession extends VoiceInteractionSession {
         }
 
         String combinedContext = String.join("\n", screenText);
-        Log.d(TAG, "Extracted Context: " + combinedContext);
-
+        
         // Process Context with Gemini Nano
-        String dummyPrompt = "What am I looking at right now?";
+        String dummyPrompt = "Analyze this screen.";
         aiClient.generateResponse(dummyPrompt, combinedContext, new AICoreClient.ResponseCallback() {
             @Override
             public void onSuccess(String response) {
-                // Since this runs in the AI thread, update UI on Main Thread
-                resultText.post(() -> resultText.setText(response));
+                resultText.post(() -> {
+                    thinkingBar.setVisibility(View.GONE);
+                    resultText.setText(response);
+                });
                 memory.storeFact("last_query", dummyPrompt);
             }
 
             @Override
             public void onError(Throwable t) {
-                resultText.post(() -> resultText.setText("Gemini Nano Error: " + t.getMessage()));
+                resultText.post(() -> {
+                    thinkingBar.setVisibility(View.GONE);
+                    resultText.setText("Gemini Nano Error: " + t.getMessage());
+                });
             }
         });
 
-        // For Bargain Hunting: Check extracted text for currency/prices
         processContextForBargains(combinedContext);
     }
 
     private void parseNode(AssistStructure.ViewNode node, List<String> textList) {
-        if (node == null)
-            return;
-
+        if (node == null) return;
         CharSequence text = node.getText();
         if (text != null && text.length() > 0) {
             textList.add(text.toString());
         }
-
         int childCount = node.getChildCount();
         for (int i = 0; i < childCount; i++) {
             parseNode(node.getChildAt(i), textList);
@@ -99,8 +124,6 @@ public class AssistantSession extends VoiceInteractionSession {
 
     private void processContextForBargains(String context) {
         if (context.contains("$") || context.toLowerCase().contains("price")) {
-            Log.d(TAG, "Potential bargain/price detected in context.");
-            // Log to local memory
             memory.logPrice("Item from screen", 0.0, "$", "Screen Scraper");
         }
     }
