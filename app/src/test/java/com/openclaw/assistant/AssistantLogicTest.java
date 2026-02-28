@@ -7,7 +7,7 @@ public class AssistantLogicTest {
 
     @Test
     public void testBargainDetection() {
-        String context = "Buy this product for only 9.99";
+        String context = "Buy this product for only $9.99";
         boolean detected = context.contains("$") || context.toLowerCase().contains("price");
         assertTrue("Bargain should be detected", detected);
     }

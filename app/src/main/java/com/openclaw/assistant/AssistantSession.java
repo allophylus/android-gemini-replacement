@@ -25,6 +25,7 @@ public class AssistantSession extends VoiceInteractionSession {
     private ProgressBar thinkingBar;
     private AICoreClient aiClient;
     private MemoryManager memory;
+    private VoiceManager voice;
     private FrameLayout rootLayout;
     private View statusIndicator;
 
@@ -32,6 +33,7 @@ public class AssistantSession extends VoiceInteractionSession {
         super(context);
         this.aiClient = new AICoreClient(context);
         this.memory = new MemoryManager(context);
+        this.voice = new VoiceManager(context);
     }
 
     @Override
@@ -144,6 +146,8 @@ public class AssistantSession extends VoiceInteractionSession {
                     setIndicatorStatus(false);
                     thinkingBar.setVisibility(View.GONE);
                     resultText.setText(response);
+                    // Proactive Voice Feedback
+                    voice.speak(response);
                 });
                 memory.storeFact("last_query", dummyPrompt);
             }

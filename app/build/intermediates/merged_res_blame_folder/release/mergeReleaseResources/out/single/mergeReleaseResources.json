@@ -1,0 +1,6 @@
+[
+    {
+        "merged": "com.openclaw.assistant.app-release-34:/xml_assistant_info.xml.flat",
+        "source": "com.openclaw.assistant.app-main-35:/xml/assistant_info.xml"
+    }
+]

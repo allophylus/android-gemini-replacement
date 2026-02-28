@@ -8,6 +8,8 @@
         android:minSdkVersion="31"
         android:targetSdkVersion="34" />
 
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <permission
         android:name="com.openclaw.assistant.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
         android:protectionLevel="signature" />
@@ -49,6 +51,15 @@
         <service
             android:name="com.openclaw.assistant.AssistantRecognitionService"
             android:exported="true" />
+
+        <activity
+            android:name="com.google.android.gms.common.api.GoogleApiActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
+        <meta-data
+            android:name="com.google.android.gms.version"
+            android:value="@integer/google_play_services_version" />
 
         <provider
             android:name="androidx.startup.InitializationProvider"

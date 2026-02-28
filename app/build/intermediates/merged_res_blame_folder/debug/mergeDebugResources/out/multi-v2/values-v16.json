@@ -1,10 +1,10 @@
 {
     "logs": [
         {
-            "outputFile": "com.openclaw.assistant.app-mergeDebugResources-30:/values-v16/values-v16.xml",
+            "outputFile": "com.openclaw.assistant.app-mergeDebugResources-32:/values-v16/values-v16.xml",
             "map": [
                 {
-                    "source": "/Users/fen/.gradle/caches/9.0-milestone-1/transforms/b15544bd29ec5d9889c5ffdee464736f/transformed/core-1.9.0/res/values-v16/values-v16.xml",
+                    "source": "/home/fen/.gradle/caches/9.0-milestone-1/transforms/8b2d1b95b17010e4b7e56180950bcccd/transformed/core-1.12.0/res/values-v16/values-v16.xml",
                     "from": {
                         "startLines": "2",
                         "startColumns": "4",
@@ -14,7 +14,7 @@
                     }
                 },
                 {
-                    "source": "/Users/fen/.gradle/caches/9.0-milestone-1/transforms/300d9f09342fe81e51843a29b9928a86/transformed/appcompat-1.6.1/res/values-v16/values-v16.xml",
+                    "source": "/home/fen/.gradle/caches/9.0-milestone-1/transforms/300d9f09342fe81e51843a29b9928a86/transformed/appcompat-1.6.1/res/values-v16/values-v16.xml",
                     "from": {
                         "startLines": "2",
                         "startColumns": "4",

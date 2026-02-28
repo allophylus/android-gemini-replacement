@@ -36,6 +36,10 @@ dependencies {
     // Google AI Edge SDK for Gemini Nano
     implementation 'com.google.android.gms:play-services-base:18.4.0'
     implementation 'com.google.ai.client.generativeai:generativeai:0.4.0'
+    implementation 'com.google.guava:guava:31.1-android'
+    
+    // Sherpa-ONNX for Local TTS (Piper/Coqui Support)
+    implementation 'com.k2fsa.sherpa.onnx:sherpa-onnx:1.10.43'
     
     // SQLite for local memory
     implementation "androidx.sqlite:sqlite:2.4.0"
