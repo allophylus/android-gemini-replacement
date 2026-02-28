@@ -35,7 +35,11 @@ class AICoreClient(private val context: Context) {
                 val destDir = context.getExternalFilesDir(null) ?: context.filesDir
                 val modelFile = java.io.File(destDir, "gemma-2b.bin")
                 
-                if (!modelFile.exists() || modelFile.length() < 1000000) { // Redownload if corrupt or empty
+                // The Gemma 2B CPU int4 model is ~1.34GB.
+                if (!modelFile.exists() || modelFile.length() < 1300000000L) { // Redownload if corrupt, partial, or empty
+                    if (modelFile.exists()) {
+                        modelFile.delete() // Clean up the corrupted/partial file
+                    }
                     if (isUnmeteredNetwork()) {
                         downloadModel(modelFile)
                     } else {
