@@ -31,8 +31,9 @@ class AICoreClient(private val context: Context) {
 
         scope.launch(Dispatchers.IO) {
             try {
-                // Use internal storage to avoid needing file system permissions
-                val modelFile = java.io.File(context.filesDir, "gemma-2b.bin")
+                // Use external storage to avoid filling up the limited internal app data partition (avoiding ENOSPC)
+                val destDir = context.getExternalFilesDir(null) ?: context.filesDir
+                val modelFile = java.io.File(destDir, "gemma-2b.bin")
                 
                 if (!modelFile.exists() || modelFile.length() < 1000000) { // Redownload if corrupt or empty
                     if (isUnmeteredNetwork()) {
@@ -85,7 +86,8 @@ class AICoreClient(private val context: Context) {
      * Public method to explicitly start the download (e.g. after user agrees to cellular warning)
      */
     fun startDownloadExplicitly() {
-        val modelFile = java.io.File(context.filesDir, "gemma-2b.bin")
+        val destDir = context.getExternalFilesDir(null) ?: context.filesDir
+        val modelFile = java.io.File(destDir, "gemma-2b.bin")
         scope.launch(Dispatchers.IO) {
             downloadModel(modelFile)
         }

@@ -215,6 +215,8 @@ public class MainActivity extends Activity {
                                     statusView.setText("- Gemini Nano: ⏸️ Paused (Waiting for Wi-Fi)");
                                 })
                                 .show();
+                    } else if (msg != null && msg.contains("ENOSPC")) {
+                        statusView.setText("- Gemini Nano: ⚠️ Not Ready (Not enough storage space)");
                     } else {
                         statusView.setText("- Gemini Nano: ⚠️ Not Ready (" + msg + ")");
                     }
