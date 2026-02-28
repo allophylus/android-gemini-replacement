@@ -33,6 +33,10 @@ dependencies {
     implementation 'com.google.android.material:material:1.11.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     
+    // Google AI Edge SDK for Gemini Nano
+    implementation 'com.google.android.gms:play-services-base:18.4.0'
+    implementation 'com.google.ai.client.generativeai:generativeai:0.4.0'
+    
     // SQLite for local memory
     implementation "androidx.sqlite:sqlite:2.4.0"
     

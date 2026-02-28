@@ -3,26 +3,50 @@ package com.openclaw.assistant;
 import android.app.assist.AssistContent;
 import android.app.assist.AssistStructure;
 import android.content.Context;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.service.voice.VoiceInteractionSession;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.List;
 
 public class AssistantSession extends VoiceInteractionSession {
     private static final String TAG = "Mate";
+    private TextView resultText;
+    private AICoreClient aiClient;
+    private MemoryManager memory;
 
     public AssistantSession(Context context) {
         super(context);
+        this.aiClient = new AICoreClient(context);
+        this.memory = new MemoryManager(context);
+    }
+
+    @Override
+    public View onCreateContentView() {
+        LinearLayout layout = new LinearLayout(getContext());
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setGravity(Gravity.BOTTOM);
+        layout.setPadding(32, 32, 32, 32);
+        layout.setBackgroundColor(Color.parseColor("#E0FFFFFF"));
+
+        resultText = new TextView(getContext());
+        resultText.setText("Mate is thinking...");
+        resultText.setTextColor(Color.BLACK);
+        resultText.setTextSize(18f);
+
+        layout.addView(resultText);
+        return layout;
     }
 
     @Override
     public void onHandleAssist(android.service.voice.VoiceInteractionSession.AssistState state) {
         super.onHandleAssist(state);
-        Bundle data = state.getAssistData();
         AssistStructure structure = state.getAssistStructure();
-        AssistContent content = state.getAssistContent();
 
         Log.d(TAG, "Assist triggered. Parsing screen content...");
 
@@ -35,9 +59,24 @@ public class AssistantSession extends VoiceInteractionSession {
             }
         }
 
-        // This is where the local LLM (Gemini Nano) would receive the context
         String combinedContext = String.join("\n", screenText);
         Log.d(TAG, "Extracted Context: " + combinedContext);
+
+        // Process Context with Gemini Nano
+        String dummyPrompt = "What am I looking at right now?";
+        aiClient.generateResponse(dummyPrompt, combinedContext, new AICoreClient.ResponseCallback() {
+            @Override
+            public void onSuccess(String response) {
+                // Since this runs in the AI thread, update UI on Main Thread
+                resultText.post(() -> resultText.setText(response));
+                memory.storeFact("last_query", dummyPrompt);
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                resultText.post(() -> resultText.setText("Gemini Nano Error: " + t.getMessage()));
+            }
+        });
 
         // For Bargain Hunting: Check extracted text for currency/prices
         processContextForBargains(combinedContext);
@@ -59,10 +98,10 @@ public class AssistantSession extends VoiceInteractionSession {
     }
 
     private void processContextForBargains(String context) {
-        // Basic placeholder logic for local bargain detection
         if (context.contains("$") || context.toLowerCase().contains("price")) {
             Log.d(TAG, "Potential bargain/price detected in context.");
-            // Here we would query local SQLite for price history
+            // Log to local memory
+            memory.logPrice("Item from screen", 0.0, "$", "Screen Scraper");
         }
     }
 }
