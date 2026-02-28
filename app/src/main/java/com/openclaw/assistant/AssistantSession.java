@@ -9,12 +9,15 @@ import android.service.voice.VoiceInteractionSession;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.ProgressBar;
 import android.graphics.drawable.GradientDrawable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Calendar;
 
 public class AssistantSession extends VoiceInteractionSession {
     private static final String TAG = "Mate";
@@ -22,6 +25,8 @@ public class AssistantSession extends VoiceInteractionSession {
     private ProgressBar thinkingBar;
     private AICoreClient aiClient;
     private MemoryManager memory;
+    private FrameLayout rootLayout;
+    private View statusIndicator;
 
     public AssistantSession(Context context) {
         super(context);
@@ -31,23 +36,36 @@ public class AssistantSession extends VoiceInteractionSession {
 
     @Override
     public View onCreateContentView() {
-        // Main Container (ClawControl v1.3.1 Inspired)
-        LinearLayout layout = new LinearLayout(getContext());
-        layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setGravity(Gravity.BOTTOM);
-        layout.setPadding(48, 48, 48, 64);
+        rootLayout = new FrameLayout(getContext());
+        
+        // 1. Cozy Backdrop (Day/Night logic)
+        updateTheme();
+
+        // 2. Main Container (ClawControl v1.3.1 Inspired)
+        LinearLayout contentLayout = new LinearLayout(getContext());
+        contentLayout.setOrientation(LinearLayout.VERTICAL);
+        contentLayout.setGravity(Gravity.BOTTOM);
+        contentLayout.setPadding(48, 48, 48, 64);
 
         // Rounded Background (Modern Slate)
         GradientDrawable shape = new GradientDrawable();
         shape.setCornerRadius(64f);
         shape.setColor(Color.parseColor("#F8F9FA"));
-        layout.setBackground(shape);
+        contentLayout.setBackground(shape);
+
+        // 3. Status Indicator (Inspired by Reddit "Working/Idle" dot)
+        statusIndicator = new View(getContext());
+        LinearLayout.LayoutParams dotParams = new LinearLayout.LayoutParams(24, 24);
+        dotParams.setMargins(0, 0, 0, 16);
+        statusIndicator.setLayoutParams(dotParams);
+        setIndicatorStatus(false); // Default Idle
+        contentLayout.addView(statusIndicator);
 
         // Thinking Indicator (Claw-style subtle bar)
         thinkingBar = new ProgressBar(getContext(), null, android.R.attr.progressBarStyleHorizontal);
         thinkingBar.setIndeterminate(true);
-        thinkingBar.setVisibility(View.VISIBLE);
-        layout.addView(thinkingBar);
+        thinkingBar.setVisibility(View.GONE);
+        contentLayout.addView(thinkingBar);
 
         // Response Text
         resultText = new TextView(getContext());
@@ -55,16 +73,46 @@ public class AssistantSession extends VoiceInteractionSession {
         resultText.setTextColor(Color.parseColor("#212529"));
         resultText.setTextSize(18f);
         resultText.setPadding(0, 24, 0, 24);
-        layout.addView(resultText);
+        contentLayout.addView(resultText);
 
         // Dictation Pulse Placeholder (Microphone visual)
         TextView micIndicator = new TextView(getContext());
         micIndicator.setText("🎤");
         micIndicator.setGravity(Gravity.CENTER);
         micIndicator.setTextSize(24f);
-        layout.addView(micIndicator);
+        contentLayout.addView(micIndicator);
 
-        return layout;
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, 
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        params.gravity = Gravity.BOTTOM;
+        rootLayout.addView(contentLayout, params);
+
+        return rootLayout;
+    }
+
+    private void updateTheme() {
+        int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
+        boolean isNight = (hour < 6 || hour > 18);
+        
+        // Cozy Background based on time
+        if (isNight) {
+            rootLayout.setBackgroundColor(Color.parseColor("#1A1A2E")); // Deep Midnight
+        } else {
+            rootLayout.setBackgroundColor(Color.parseColor("#E0E0E0")); // Soft Day
+        }
+    }
+
+    private void setIndicatorStatus(boolean working) {
+        GradientDrawable dot = new GradientDrawable();
+        dot.setShape(GradientDrawable.OVAL);
+        if (working) {
+            dot.setColor(Color.parseColor("#4CAF50")); // Pulsing Green
+        } else {
+            dot.setColor(Color.parseColor("#9E9E9E")); // Idle Grey
+        }
+        statusIndicator.setBackground(dot);
     }
 
     @Override
@@ -72,6 +120,7 @@ public class AssistantSession extends VoiceInteractionSession {
         super.onHandleAssist(state);
         AssistStructure structure = state.getAssistStructure();
 
+        setIndicatorStatus(true);
         thinkingBar.setVisibility(View.VISIBLE);
         resultText.setText("Mate is thinking...");
 
@@ -92,6 +141,7 @@ public class AssistantSession extends VoiceInteractionSession {
             @Override
             public void onSuccess(String response) {
                 resultText.post(() -> {
+                    setIndicatorStatus(false);
                     thinkingBar.setVisibility(View.GONE);
                     resultText.setText(response);
                 });
@@ -101,6 +151,7 @@ public class AssistantSession extends VoiceInteractionSession {
             @Override
             public void onError(Throwable t) {
                 resultText.post(() -> {
+                    setIndicatorStatus(false);
                     thinkingBar.setVisibility(View.GONE);
                     resultText.setText("Gemini Nano Error: " + t.getMessage());
                 });
