@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.openclaw.assistant.app-mergeDebugResources-32:/values-sk/values-sk.xml",
+            "outputFile": "com.openclaw.assistant.app-mergeDebugResources-33:/values-sk/values-sk.xml",
             "map": [
                 {
                     "source": "/home/fen/.gradle/caches/9.0-milestone-1/transforms/91aeebf93bbc85abf5317b7c8304cd8e/transformed/material-1.11.0/res/values-sk/values-sk.xml",

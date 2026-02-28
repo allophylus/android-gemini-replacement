@@ -10,6 +10,7 @@ MERGED from [androidx.appcompat:appcompat-resources:1.6.1] /home/fen/.gradle/cac
 MERGED from [androidx.appcompat:appcompat:1.6.1] /home/fen/.gradle/caches/9.0-milestone-1/transforms/300d9f09342fe81e51843a29b9928a86/transformed/appcompat-1.6.1/AndroidManifest.xml:17:1-22:12
 MERGED from [com.google.android.gms:play-services-base:18.4.0] /home/fen/.gradle/caches/9.0-milestone-1/transforms/9f8a3d33abf3c02841c0642f0a55ba70/transformed/play-services-base-18.4.0/AndroidManifest.xml:16:1-24:12
 MERGED from [com.google.ai.client.generativeai:generativeai:0.4.0] /home/fen/.gradle/caches/9.0-milestone-1/transforms/b13b2f3ad0979cb0d1d9b1f39b0b1f80/transformed/generativeai-0.4.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.media:media:1.6.0] /home/fen/.gradle/caches/9.0-milestone-1/transforms/15055d139da29e2820828e9b9877a631/transformed/media-1.6.0/AndroidManifest.xml:17:1-24:12
 MERGED from [androidx.sqlite:sqlite:2.4.0] /home/fen/.gradle/caches/9.0-milestone-1/transforms/f5f3f05a854e47752bc9912135b60e9b/transformed/sqlite-2.4.0/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.viewpager2:viewpager2:1.0.0] /home/fen/.gradle/caches/9.0-milestone-1/transforms/a6ab0583ee353a1309283123a1d77916/transformed/viewpager2-1.0.0/AndroidManifest.xml:17:1-24:12
 MERGED from [com.google.android.gms:play-services-tasks:18.1.0] /home/fen/.gradle/caches/9.0-milestone-1/transforms/718172a2d5c560d43a48bd98d97d573b/transformed/play-services-tasks-18.1.0/AndroidManifest.xml:2:1-6:12
@@ -159,6 +160,8 @@ MERGED from [com.google.android.gms:play-services-base:18.4.0] /home/fen/.gradle
 MERGED from [com.google.android.gms:play-services-base:18.4.0] /home/fen/.gradle/caches/9.0-milestone-1/transforms/9f8a3d33abf3c02841c0642f0a55ba70/transformed/play-services-base-18.4.0/AndroidManifest.xml:18:5-43
 MERGED from [com.google.ai.client.generativeai:generativeai:0.4.0] /home/fen/.gradle/caches/9.0-milestone-1/transforms/b13b2f3ad0979cb0d1d9b1f39b0b1f80/transformed/generativeai-0.4.0/AndroidManifest.xml:20:5-44
 MERGED from [com.google.ai.client.generativeai:generativeai:0.4.0] /home/fen/.gradle/caches/9.0-milestone-1/transforms/b13b2f3ad0979cb0d1d9b1f39b0b1f80/transformed/generativeai-0.4.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.media:media:1.6.0] /home/fen/.gradle/caches/9.0-milestone-1/transforms/15055d139da29e2820828e9b9877a631/transformed/media-1.6.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.media:media:1.6.0] /home/fen/.gradle/caches/9.0-milestone-1/transforms/15055d139da29e2820828e9b9877a631/transformed/media-1.6.0/AndroidManifest.xml:20:5-22:41
 MERGED from [androidx.sqlite:sqlite:2.4.0] /home/fen/.gradle/caches/9.0-milestone-1/transforms/f5f3f05a854e47752bc9912135b60e9b/transformed/sqlite-2.4.0/AndroidManifest.xml:20:5-44
 MERGED from [androidx.sqlite:sqlite:2.4.0] /home/fen/.gradle/caches/9.0-milestone-1/transforms/f5f3f05a854e47752bc9912135b60e9b/transformed/sqlite-2.4.0/AndroidManifest.xml:20:5-44
 MERGED from [androidx.viewpager2:viewpager2:1.0.0] /home/fen/.gradle/caches/9.0-milestone-1/transforms/a6ab0583ee353a1309283123a1d77916/transformed/viewpager2-1.0.0/AndroidManifest.xml:20:5-22:41

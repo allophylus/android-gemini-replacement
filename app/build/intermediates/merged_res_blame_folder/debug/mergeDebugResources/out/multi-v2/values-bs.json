@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.openclaw.assistant.app-mergeDebugResources-32:/values-bs/values-bs.xml",
+            "outputFile": "com.openclaw.assistant.app-mergeDebugResources-33:/values-bs/values-bs.xml",
             "map": [
                 {
                     "source": "/home/fen/.gradle/caches/9.0-milestone-1/transforms/9f8a3d33abf3c02841c0642f0a55ba70/transformed/play-services-base-18.4.0/res/values-bs/values.xml",
