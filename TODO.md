@@ -23,9 +23,9 @@ A 100% local, privacy-first Android assistant that replaces Google Gemini/Assist
 >>>>>>> Stashed changes
 
 ## 📝 To-Do List (Active)
-1. [ ] **Step 1: Setup Gradle for AI Edge SDK & SQLite** (Dependencies ready).
-2. [ ] **Step 2: Implement `AICoreClient`** to handle local inference.
-3. [ ] **Step 3: Analyze ClawControl v1.3.1 for UI inspiration** (Wake-word dictation composer).
-4. [ ] **Step 4: Create `MemoryManager`** using SQLite for local "facts" storage.
-5. [ ] **Step 5: Build the Bargain Detection Logic** to trigger on currency symbols.
-6. [ ] **Step 6: Create a basic Settings Activity** for user customization.
+- [x] **Step 1: Setup Gradle for AI Edge SDK & SQLite** (Dependencies ready).
+- [x] **Step 2: Implement `AICoreClient`** to handle local inference.
+- [ ] **Step 3: Analyze ClawControl v1.3.1 for UI inspiration** (Wake-word dictation composer).
+- [x] **Step 4: Create `MemoryManager`** using SQLite for local "facts" storage.
+- [x] **Step 5: Build the Bargain Detection Logic** to trigger on currency symbols.
+- [x] **Step 6: Create a basic Settings Activity** for user customization.
