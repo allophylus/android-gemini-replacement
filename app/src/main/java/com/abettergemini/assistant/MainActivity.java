@@ -22,6 +22,7 @@ import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.util.Log;
 import android.util.TypedValue;
+import java.util.ArrayList;
 
 public class MainActivity extends Activity {
     // Core
@@ -38,6 +39,13 @@ public class MainActivity extends Activity {
     private TextView statusText;
     private android.widget.ProgressBar statusProgress;
     private int exchangeCount = 0;
+
+    // Chat message store (survives theme toggles)
+    private static class ChatMsg {
+        String sender, message, timing;
+        ChatMsg(String s, String m, String t) { sender = s; message = m; timing = t; }
+    }
+    private final ArrayList<ChatMsg> chatMessages = new ArrayList<>();
 
     // Auto-refresh
     private final Handler refreshHandler = new Handler(Looper.getMainLooper());
@@ -60,6 +68,11 @@ public class MainActivity extends Activity {
         prefs = new PreferencesManager(this);
         encryptedPrefs = new EncryptedPrefsManager(this);
         aiClient = new AICoreClient(this);
+        buildUI();
+    }
+
+    /** Builds or rebuilds the entire UI. Preserves aiClient and chatMessages. */
+    private void buildUI() {
         theme = new ThemeManager(prefs.isDarkMode());
 
         LinearLayout root = new LinearLayout(this);
@@ -85,6 +98,11 @@ public class MainActivity extends Activity {
 
         setContentView(root);
         startAutoRefresh();
+
+        // Replay saved chat messages
+        for (ChatMsg msg : chatMessages) {
+            addChatBubbleInternal(msg.sender, msg.message, msg.timing);
+        }
     }
 
     @Override
@@ -124,7 +142,7 @@ public class MainActivity extends Activity {
         themeBtn.setPadding(dp(12), dp(8), dp(12), dp(8));
         themeBtn.setOnClickListener(v -> {
             prefs.setDarkMode(!prefs.isDarkMode());
-            recreate();
+            buildUI();
         });
         bar.addView(themeBtn);
 
@@ -749,6 +767,11 @@ public class MainActivity extends Activity {
     }
 
     private void addChatBubble(String sender, String message, String timing) {
+        chatMessages.add(new ChatMsg(sender, message, timing));
+        addChatBubbleInternal(sender, message, timing);
+    }
+
+    private void addChatBubbleInternal(String sender, String message, String timing) {
         LinearLayout bubble = new LinearLayout(this);
         bubble.setOrientation(LinearLayout.VERTICAL);
         bubble.setPadding(dp(14), dp(10), dp(14), dp(10));

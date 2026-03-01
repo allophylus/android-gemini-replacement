@@ -64,6 +64,14 @@ public class ModelConfig {
                         1500000000L,
                         "Microsoft. Best reasoning at this size. Text-only.",
                         Backend.LLAMA_CPP, false, "~2.3GB"
+                ),
+                new ModelConfig(
+                        "Gemma 2 2B",
+                        "gemma-2-2b-it-Q4_K_M.gguf",
+                        "https://huggingface.co/bartowski/gemma-2-2b-it-GGUF/resolve/main/gemma-2-2b-it-Q4_K_M.gguf",
+                        1000000000L,
+                        "Google. Compact, fast, great text quality. Text-only.",
+                        Backend.LLAMA_CPP, false, "~1.6GB"
                 )
         };
     }
