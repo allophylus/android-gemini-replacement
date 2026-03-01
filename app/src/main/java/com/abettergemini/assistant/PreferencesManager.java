@@ -16,6 +16,7 @@ public class PreferencesManager {
     private static final String KEY_PERSONALITY_INTENSITY = "personality_intensity";
     private static final String KEY_VOICE_GENDER = "voice_gender";
     private static final String KEY_SELECTED_MODEL = "selected_model";
+    private static final String KEY_MOOD = "mood";
 
     private final SharedPreferences prefs;
     private final EncryptedPrefsManager encryptedPrefs;
@@ -109,6 +110,14 @@ public class PreferencesManager {
         return ModelConfig.findByName(getSelectedModel());
     }
 
+    public String getMood() {
+        return prefs.getString(KEY_MOOD, "Neutral");
+    }
+
+    public void setMood(String value) {
+        prefs.edit().putString(KEY_MOOD, value).apply();
+    }
+
     public String generateSystemPrompt() {
         StringBuilder sb = new StringBuilder();
         sb.append("You are an AI assistant. ");
@@ -154,6 +163,11 @@ public class PreferencesManager {
 
         if (getHumor() >= 8)
             sb.append("Include sarcastic or playful remarks. ");
+
+        String mood = getMood();
+        if (!mood.equals("Neutral")) {
+            sb.append("Your current mood is ").append(mood).append(". Let this influence your tone. ");
+        }
 
         // Tool Use Instructions
         sb.append("\nTOOLS AVAILABLE: You have special abilities. ");

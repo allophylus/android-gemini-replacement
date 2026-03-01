@@ -4,33 +4,67 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
-import android.widget.TextView;
 import android.widget.SeekBar;
+import android.widget.TextView;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.util.Log;
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+import android.util.TypedValue;
 
 public class MainActivity extends Activity {
+    // Core
     private PreferencesManager prefs;
     private EncryptedPrefsManager encryptedPrefs;
     private AICoreClient aiClient;
+
+    // UI refs
     private LinearLayout chatHistory;
     private EditText chatInput;
     private View settingsView;
     private View chatView;
-    private TextView assistCheck;
-    private TextView aiCheck;
-    private SwipeRefreshLayout swipeRefresh;
+    private TextView statusText;
+    private android.widget.ProgressBar statusProgress;
     private int exchangeCount = 0;
+
+    // Auto-refresh
+    private final Handler refreshHandler = new Handler(Looper.getMainLooper());
+    private boolean autoRefreshRunning = false;
+    private final Runnable autoRefreshRunnable = new Runnable() {
+        @Override
+        public void run() {
+            updateStatusBar();
+            if (!aiClient.isModelReady()) {
+                refreshHandler.postDelayed(this, 5000);
+            } else {
+                autoRefreshRunning = false;
+            }
+        }
+    };
+
+    // Colors
+    private static final int CLR_BG = Color.parseColor("#0F0F1A");
+    private static final int CLR_SURFACE = Color.parseColor("#1A1A2E");
+    private static final int CLR_CARD = Color.parseColor("#242442");
+    private static final int CLR_ACCENT = Color.parseColor("#6C63FF");
+    private static final int CLR_ACCENT2 = Color.parseColor("#FF6584");
+    private static final int CLR_TEXT = Color.parseColor("#E8E8F0");
+    private static final int CLR_TEXT_DIM = Color.parseColor("#9090B0");
+    private static final int CLR_INPUT_BG = Color.parseColor("#2A2A48");
+    private static final int CLR_USER_BUBBLE = Color.parseColor("#6C63FF");
+    private static final int CLR_AI_BUBBLE = Color.parseColor("#2A2A48");
+    private static final int CLR_SUCCESS = Color.parseColor("#4CAF50");
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,442 +73,550 @@ public class MainActivity extends Activity {
         encryptedPrefs = new EncryptedPrefsManager(this);
         aiClient = new AICoreClient(this);
 
-        swipeRefresh = new SwipeRefreshLayout(this);
-
-        // Main Container inside a ScrollView so Pull-to-Refresh works reliably
-        ScrollView mainScroll = new ScrollView(this);
-        mainScroll.setFillViewport(true);
-        swipeRefresh.addView(mainScroll);
-
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(Color.parseColor("#F8F9FA"));
-        mainScroll.addView(root);
+        root.setBackgroundColor(CLR_BG);
 
-        // Device Check
-        checkDeviceCompatibility();
+        // === Header Bar ===
+        root.addView(createHeaderBar());
 
-        // Dependency Check Header
-        View depCheck = createDependencyCheckView();
-        root.addView(depCheck);
+        // === Status Bar ===
+        root.addView(createStatusBar());
 
-        // Toolbar
-        LinearLayout toolbar = new LinearLayout(this);
-        toolbar.setOrientation(LinearLayout.HORIZONTAL);
-        toolbar.setPadding(32, 32, 32, 32);
-        toolbar.setGravity(Gravity.CENTER_VERTICAL);
-
-        TextView title = new TextView(this);
-        title.setText("Mate Assistant");
-        title.setTextSize(20f);
-        title.setTextColor(Color.BLACK);
-        LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT,
-                1.0f);
-        toolbar.addView(title, titleParams);
-
-        ImageButton settingsBtn = new ImageButton(this);
-        settingsBtn.setImageResource(android.R.drawable.ic_menu_preferences);
-        settingsBtn.setBackgroundColor(Color.TRANSPARENT);
-        settingsBtn.setOnClickListener(v -> toggleSettings());
-        toolbar.addView(settingsBtn);
-
-        root.addView(toolbar);
-
-        // Chat View
+        // === Chat View (default) ===
         chatView = createChatView();
-        root.addView(chatView);
+        root.addView(chatView, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1.0f));
 
-        // Settings View (Hidden by default)
+        // === Settings View (hidden) ===
         settingsView = createSettingsView();
         settingsView.setVisibility(View.GONE);
-        root.addView(settingsView);
+        root.addView(settingsView, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1.0f));
 
-        swipeRefresh.setOnRefreshListener(() -> refreshDependencyStatus());
-        setContentView(swipeRefresh);
+        setContentView(root);
+        startAutoRefresh();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        refreshDependencyStatus();
+        updateStatusBar();
+        if (!aiClient.isModelReady()) startAutoRefresh();
     }
 
-    private void checkDeviceCompatibility() {
-        String model = android.os.Build.MODEL;
-        String manufacturer = android.os.Build.MANUFACTURER;
-        Log.d("Mate", "Running on: " + manufacturer + " " + model);
-
-        if (manufacturer.toLowerCase().contains("samsung")) {
-            Log.d("Mate", "Samsung Device Detected. Ensuring AICore integration...");
-        }
+    @Override
+    protected void onPause() {
+        super.onPause();
+        stopAutoRefresh();
     }
 
-    private View createDependencyCheckView() {
-        LinearLayout layout = new LinearLayout(this);
-        layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(32, 32, 32, 32);
-        layout.setBackgroundColor(Color.parseColor("#FFF3E0"));
+    // ========== HEADER BAR ==========
 
+    private View createHeaderBar() {
+        LinearLayout bar = new LinearLayout(this);
+        bar.setOrientation(LinearLayout.HORIZONTAL);
+        bar.setPadding(dp(20), dp(16), dp(20), dp(12));
+        bar.setGravity(Gravity.CENTER_VERTICAL);
+        bar.setBackgroundColor(CLR_SURFACE);
+
+        // App title
         TextView title = new TextView(this);
-        title.setText("Dependency & AI Readiness");
-        title.setTextSize(14f);
-        title.setPadding(0, 0, 0, 8);
-        layout.addView(title);
+        title.setText("Mate");
+        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 24);
+        title.setTextColor(Color.WHITE);
+        title.setTypeface(null, Typeface.BOLD);
+        bar.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
 
-        assistCheck = new TextView(this);
-        layout.addView(assistCheck);
+        // Gear icon
+        ImageButton gearBtn = new ImageButton(this);
+        gearBtn.setImageResource(android.R.drawable.ic_menu_preferences);
+        gearBtn.setColorFilter(CLR_TEXT);
+        gearBtn.setBackgroundColor(Color.TRANSPARENT);
+        gearBtn.setPadding(dp(8), dp(8), dp(8), dp(8));
+        gearBtn.setOnClickListener(v -> toggleSettings());
+        bar.addView(gearBtn);
 
-        aiCheck = new TextView(this);
-        layout.addView(aiCheck);
+        return bar;
+    }
 
-        android.widget.ProgressBar downloadBar = new android.widget.ProgressBar(this, null,
+    // ========== STATUS BAR ==========
+
+    private View createStatusBar() {
+        LinearLayout bar = new LinearLayout(this);
+        bar.setOrientation(LinearLayout.VERTICAL);
+        bar.setPadding(dp(20), dp(10), dp(20), dp(10));
+        bar.setBackgroundColor(CLR_SURFACE);
+
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+
+        // Model name chip
+        TextView modelChip = new TextView(this);
+        modelChip.setText(prefs.getSelectedModel());
+        modelChip.setTextColor(CLR_ACCENT);
+        modelChip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        modelChip.setTypeface(null, Typeface.BOLD);
+        modelChip.setPadding(dp(10), dp(4), dp(10), dp(4));
+        GradientDrawable chipBg = new GradientDrawable();
+        chipBg.setCornerRadius(dp(12));
+        chipBg.setColor(Color.parseColor("#1E1E3F"));
+        chipBg.setStroke(1, CLR_ACCENT);
+        modelChip.setBackground(chipBg);
+        row.addView(modelChip);
+
+        // Spacer
+        View spacer = new View(this);
+        row.addView(spacer, new LinearLayout.LayoutParams(0, 1, 1.0f));
+
+        // Status text
+        statusText = new TextView(this);
+        statusText.setTextColor(CLR_TEXT_DIM);
+        statusText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        row.addView(statusText);
+
+        bar.addView(row);
+
+        // Download progress bar
+        statusProgress = new android.widget.ProgressBar(this, null,
                 android.R.attr.progressBarStyleHorizontal);
-        downloadBar.setMax(100);
-        downloadBar.setProgress(0);
-        downloadBar.setVisibility(View.GONE);
-        layout.addView(downloadBar);
+        statusProgress.setMax(100);
+        statusProgress.setProgress(0);
+        statusProgress.setVisibility(View.GONE);
+        statusProgress.setPadding(0, dp(6), 0, 0);
+        bar.addView(statusProgress);
 
-        // Register the real-time download listener
+        // Register download listener
         aiClient.setProgressListener(percent -> {
-            if (downloadBar.getVisibility() == View.GONE) {
-                downloadBar.setVisibility(View.VISIBLE);
-            }
-            downloadBar.setProgress(percent);
-            aiCheck.setText("- " + prefs.getSelectedModel() + ": 📥 Downloading... " + percent + "%");
-
+            statusProgress.setVisibility(View.VISIBLE);
+            statusProgress.setProgress(percent);
+            statusText.setText("📥 " + percent + "%");
+            ((TextView) ((LinearLayout)((LinearLayout) bar.getChildAt(0)).getChildAt(0)))
+                    .setText(prefs.getSelectedModel());
             if (percent >= 100) {
-                downloadBar.setVisibility(View.GONE);
-                aiCheck.setText("- " + prefs.getSelectedModel() + ": ⚙️ Loading model...");
+                statusProgress.setVisibility(View.GONE);
+                statusText.setText("⚙️ Loading...");
             }
         });
 
-        TextView infoText = new TextView(this);
-        infoText.setText(
-                "\nOn Samsung Fold 7:\n1. Settings > Advanced features > Advanced intelligence\n2. Toggle ON 'Process data only on device'\n3. If missing, clear 'AICore' app cache and restart.");
-        infoText.setTextSize(12f);
-        layout.addView(infoText);
+        // Thin separator line
+        View sep = new View(this);
+        sep.setBackgroundColor(Color.parseColor("#2A2A48"));
+        bar.addView(sep, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1)));
 
-        Button fixBtn = new Button(this);
-        fixBtn.setText("Go to Advanced Features");
-        fixBtn.setOnClickListener(v -> {
-            try {
-                Intent intent = new Intent();
-                intent.setClassName("com.android.settings", "com.android.settings.Settings$AdvancedFeaturesActivity");
-                startActivity(intent);
-            } catch (Exception e) {
-                try {
-                    startActivity(new Intent(Settings.ACTION_VOICE_INPUT_SETTINGS));
-                } catch (Exception ex) {
-                }
-            }
-        });
-        layout.addView(fixBtn);
-
-        refreshDependencyStatus();
-        return layout;
+        updateStatusBar();
+        return bar;
     }
 
-    private void refreshDependencyStatus() {
-        if (assistCheck == null || aiCheck == null)
-            return;
-
-        boolean isDefault = isMateDefaultAssistant();
-        assistCheck.setText("- Mate set as Default Assistant: " + (isDefault ? "✅" : "❌"));
-
-        aiCheck.setText("- " + prefs.getSelectedModel() + ": Checking...");
-        checkAiCoreStatus(aiCheck);
-    }
-
-    private void checkAiCoreStatus(TextView statusView) {
-        aiClient.generateResponse("test", "", new AICoreClient.ResponseCallback() {
-            @Override
-            public void onSuccess(String response) {
-                runOnUiThread(() -> {
-                    statusView.setText("- " + prefs.getSelectedModel() + ": ✅ Ready");
-                    if (swipeRefresh != null)
-                        swipeRefresh.setRefreshing(false);
-                });
-            }
-
-            @Override
-            public void onError(Throwable t) {
-                runOnUiThread(() -> {
-                    String msg = t.getMessage();
-                    if (msg != null && msg.contains("empty")) {
-                        statusView.setText("- " + prefs.getSelectedModel() + ": 📥 Download Pending...");
-                    } else if (msg != null && msg.contains("Downloading")) {
-                        // Progress listener handles UI updates natively
-                    } else if (msg != null && msg.contains("CELLULAR_DOWNLOAD_REQUIRED")) {
-                        statusView.setText("- " + prefs.getSelectedModel() + ": ⚠️ Awaiting Wi-Fi...");
-                        new AlertDialog.Builder(MainActivity.this)
-                                .setTitle("Large Download Warning")
-                                .setMessage(
-                                        "The model is large. Do you want to download over your cellular data connection?")
-                                .setPositiveButton("Download Anyway", (dialog, which) -> {
-                                    statusView.setText("- " + prefs.getSelectedModel() + ": 📥 Preparing cellular download...");
-                                    aiClient.startDownloadExplicitly();
-                                })
-                                .setNegativeButton("Wait for Wi-Fi", (dialog, which) -> {
-                                    statusView.setText("- " + prefs.getSelectedModel() + ": ⏸️ Paused (Waiting for Wi-Fi)");
-                                })
-                                .show();
-                    } else if (msg != null && msg.contains("ENOSPC")) {
-                        statusView.setText("- " + prefs.getSelectedModel() + ": ⚠️ Not Ready (Not enough storage space)");
-                    } else {
-                        statusView.setText("- " + prefs.getSelectedModel() + ": ⚠️ Not Ready (" + msg + ")");
-                    }
-                    if (swipeRefresh != null)
-                        swipeRefresh.setRefreshing(false);
-                });
-            }
-        });
-    }
-
-    private boolean isMateDefaultAssistant() {
-        boolean isRoleHeld = false;
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-            android.app.role.RoleManager roleManager = getSystemService(android.app.role.RoleManager.class);
-            if (roleManager != null && roleManager.isRoleAvailable(android.app.role.RoleManager.ROLE_ASSISTANT)) {
-                isRoleHeld = roleManager.isRoleHeld(android.app.role.RoleManager.ROLE_ASSISTANT);
-            }
+    private void updateStatusBar() {
+        if (statusText != null) {
+            statusText.setText(aiClient.getStatusText());
         }
-        String assistant = Settings.Secure.getString(getContentResolver(), "assistant");
-        boolean isSecureStringAssistant = assistant != null && assistant.contains("com.abettergemini.assistant");
-
-        String voiceService = Settings.Secure.getString(getContentResolver(), "voice_interaction_service");
-        boolean isVoiceService = voiceService != null && voiceService.contains("com.abettergemini.assistant");
-
-        return isRoleHeld || isSecureStringAssistant || isVoiceService;
     }
+
+    private void startAutoRefresh() {
+        if (autoRefreshRunning) return;
+        autoRefreshRunning = true;
+        refreshHandler.postDelayed(autoRefreshRunnable, 5000);
+    }
+
+    private void stopAutoRefresh() {
+        autoRefreshRunning = false;
+        refreshHandler.removeCallbacks(autoRefreshRunnable);
+    }
+
+    // ========== CHAT VIEW ==========
 
     private View createChatView() {
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(16, 16, 16, 16);
 
-        // Chat History Scroll
+        // Chat history scroll
         ScrollView scroll = new ScrollView(this);
-        LinearLayout.LayoutParams scrollParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, 0, 1.0f);
-
+        scroll.setFillViewport(true);
         chatHistory = new LinearLayout(this);
         chatHistory.setOrientation(LinearLayout.VERTICAL);
+        chatHistory.setPadding(dp(16), dp(12), dp(16), dp(12));
         scroll.addView(chatHistory);
-        layout.addView(scroll, scrollParams);
+        layout.addView(scroll, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1.0f));
 
-        // Input Area
+        // Input area
         LinearLayout inputArea = new LinearLayout(this);
         inputArea.setOrientation(LinearLayout.HORIZONTAL);
         inputArea.setGravity(Gravity.CENTER_VERTICAL);
-        inputArea.setPadding(0, 16, 0, 0);
+        inputArea.setPadding(dp(12), dp(8), dp(12), dp(12));
+        inputArea.setBackgroundColor(CLR_SURFACE);
 
         chatInput = new EditText(this);
         chatInput.setHint("Ask Mate anything...");
+        chatInput.setHintTextColor(CLR_TEXT_DIM);
+        chatInput.setTextColor(CLR_TEXT);
+        chatInput.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
         chatInput.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
-        LinearLayout.LayoutParams inputParams = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT,
-                1.0f);
-        inputArea.addView(chatInput, inputParams);
+        chatInput.setPadding(dp(16), dp(12), dp(16), dp(12));
+        GradientDrawable inputBg = new GradientDrawable();
+        inputBg.setCornerRadius(dp(24));
+        inputBg.setColor(CLR_INPUT_BG);
+        chatInput.setBackground(inputBg);
+        inputArea.addView(chatInput, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
 
-        Button sendBtn = new Button(this);
-        sendBtn.setText("Send");
+        // Send button
+        TextView sendBtn = new TextView(this);
+        sendBtn.setText("➤");
+        sendBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22);
+        sendBtn.setTextColor(Color.WHITE);
+        sendBtn.setGravity(Gravity.CENTER);
+        int btnSize = dp(44);
+        GradientDrawable sendBg = new GradientDrawable();
+        sendBg.setShape(GradientDrawable.OVAL);
+        sendBg.setColor(CLR_ACCENT);
+        sendBtn.setBackground(sendBg);
         sendBtn.setOnClickListener(v -> sendMessage());
-        inputArea.addView(sendBtn);
+        LinearLayout.LayoutParams sendParams = new LinearLayout.LayoutParams(btnSize, btnSize);
+        sendParams.setMargins(dp(8), 0, 0, 0);
+        inputArea.addView(sendBtn, sendParams);
 
         layout.addView(inputArea);
         return layout;
     }
 
+    // ========== SETTINGS VIEW ==========
+
     private View createSettingsView() {
         ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(true);
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(32, 16, 32, 32);
+        layout.setPadding(dp(16), dp(16), dp(16), dp(32));
 
-        TextView header = new TextView(this);
-        header.setText("Settings & Personalization");
-        header.setTextSize(18f);
-        header.setPadding(0, 0, 0, 16);
-        layout.addView(header);
+        // Back button
+        TextView backBtn = new TextView(this);
+        backBtn.setText("← Back to Chat");
+        backBtn.setTextColor(CLR_ACCENT);
+        backBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        backBtn.setPadding(dp(4), dp(8), dp(8), dp(16));
+        backBtn.setOnClickListener(v -> toggleSettings());
+        layout.addView(backBtn);
 
-        // ===== AI Model Selection =====
-        TextView modelHeader = new TextView(this);
-        modelHeader.setText("AI Model");
-        modelHeader.setTextSize(16f);
-        modelHeader.setPadding(0, 8, 0, 8);
-        layout.addView(modelHeader);
+        // Card 1: AI Model
+        layout.addView(createModelCard());
+
+        // Card 2: Personality & Mood
+        layout.addView(createPersonalityCard());
+
+        // Card 3: Voice
+        layout.addView(createVoiceCard());
+
+        // Card 4: Memory Vault
+        layout.addView(createMemoryCard());
+
+        // Card 5: Advanced
+        layout.addView(createAdvancedCard());
+
+        scroll.addView(layout);
+        return scroll;
+    }
+
+    private View createModelCard() {
+        LinearLayout card = createCard("🤖  AI Model");
 
         ModelConfig[] models = ModelConfig.getAvailableModels();
-        String[] modelDisplayNames = new String[models.length];
+        String[] names = new String[models.length];
         for (int i = 0; i < models.length; i++) {
-            modelDisplayNames[i] = models[i].getFormattedName();
+            names[i] = models[i].getFormattedName();
         }
 
-        android.widget.Spinner modelSpinner = new android.widget.Spinner(this);
-        android.widget.ArrayAdapter<String> modelAdapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, modelDisplayNames);
-        modelSpinner.setAdapter(modelAdapter);
+        android.widget.Spinner spinner = new android.widget.Spinner(this);
+        android.widget.ArrayAdapter<String> adapter = new android.widget.ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_dropdown_item, names);
+        spinner.setAdapter(adapter);
 
-        String currentModel = prefs.getSelectedModel();
+        String current = prefs.getSelectedModel();
         for (int i = 0; i < models.length; i++) {
-            if (models[i].displayName.equals(currentModel)) {
-                modelSpinner.setSelection(i);
+            if (models[i].displayName.equals(current)) {
+                spinner.setSelection(i);
                 break;
             }
         }
 
-        TextView modelDescView = new TextView(this);
-        ModelConfig currentConfig = ModelConfig.findByName(currentModel);
-        String backendLabel = currentConfig.backend == ModelConfig.Backend.LLAMA_CPP ? "Engine: llama.cpp" : "Engine: MediaPipe";
-        modelDescView.setText(currentConfig.description + "\n" + backendLabel);
-        modelDescView.setAlpha(0.7f);
-        modelDescView.setPadding(0, 4, 0, 8);
+        TextView modelInfo = new TextView(this);
+        ModelConfig currentConfig = ModelConfig.findByName(current);
+        modelInfo.setText(currentConfig.description + "\n" + 
+                (currentConfig.backend == ModelConfig.Backend.LLAMA_CPP ? "Engine: llama.cpp" : "Engine: MediaPipe") +
+                " • " + currentConfig.sizeLabel);
+        modelInfo.setTextColor(CLR_TEXT_DIM);
+        modelInfo.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        modelInfo.setPadding(0, dp(4), 0, dp(8));
 
-        modelSpinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+        spinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
             @Override
-            public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
-                String newModel = models[position].displayName;
-                String currentModel = prefs.getSelectedModel();
+            public void onItemSelected(android.widget.AdapterView<?> parent, View v, int pos, long id) {
+                String newModel = models[pos].displayName;
+                String oldModel = prefs.getSelectedModel();
                 prefs.setSelectedModel(newModel);
-                String bLabel = models[position].backend == ModelConfig.Backend.LLAMA_CPP ? "Engine: llama.cpp" : "Engine: MediaPipe";
-                modelDescView.setText(models[position].description + "\n" + bLabel);
-                // Reload model if selection changed
-                if (!newModel.equals(currentModel)) {
+                modelInfo.setText(models[pos].description + "\n" +
+                        (models[pos].backend == ModelConfig.Backend.LLAMA_CPP ? "Engine: llama.cpp" : "Engine: MediaPipe") +
+                        " • " + models[pos].sizeLabel);
+                if (!newModel.equals(oldModel)) {
                     aiClient.switchModel();
                     addChatMessage("System", "Switching to " + newModel + "...");
+                    startAutoRefresh();
                 }
             }
             @Override
             public void onNothingSelected(android.widget.AdapterView<?> parent) {}
         });
-        layout.addView(modelSpinner);
-        layout.addView(modelDescView);
 
-        Button downloadModelBtn = new Button(this);
-        downloadModelBtn.setText("Download Selected Model");
-        downloadModelBtn.setOnClickListener(v -> {
+        card.addView(spinner);
+        card.addView(modelInfo);
+
+        // Download button
+        TextView dlBtn = createActionButton("Download / Reload Model");
+        dlBtn.setOnClickListener(v -> {
             aiClient.switchModel();
-            addChatMessage("System", "Downloading " + prefs.getSelectedModel() + "...");
+            addChatMessage("System", "Loading " + prefs.getSelectedModel() + "...");
+            startAutoRefresh();
         });
-        layout.addView(downloadModelBtn);
+        card.addView(dlBtn);
 
-        // ===== Personality Section =====
-        TextView persHeader = new TextView(this);
-        persHeader.setText("\nPersonality");
-        persHeader.setTextSize(16f);
-        layout.addView(persHeader);
-        // Personality Type Dropdown
-        TextView personalityLabel = new TextView(this);
-        personalityLabel.setText("Core Personality Style:");
-        personalityLabel.setPadding(0, 16, 0, 8);
-        layout.addView(personalityLabel);
+        return card;
+    }
 
-        android.widget.Spinner personalitySpinner = new android.widget.Spinner(this);
-        String[] personalityOptions = { "Helpful", "Funny", "Sad", "Happy", "Childish", "Sarcastic", "Professional" };
-        android.widget.ArrayAdapter<String> persAdapter = new android.widget.ArrayAdapter<>(this,
-                android.R.layout.simple_spinner_dropdown_item, personalityOptions);
-        personalitySpinner.setAdapter(persAdapter);
+    private View createPersonalityCard() {
+        LinearLayout card = createCard("🎭  Personality & Mood");
 
+        // Personality type
+        addLabel(card, "Core Personality");
+        android.widget.Spinner persSpinner = new android.widget.Spinner(this);
+        String[] opts = {"Helpful", "Funny", "Sad", "Happy", "Childish", "Sarcastic", "Professional"};
+        persSpinner.setAdapter(new android.widget.ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_dropdown_item, opts));
         String currentPers = prefs.getPersonality();
-        for (int i = 0; i < personalityOptions.length; i++) {
-            if (personalityOptions[i].equals(currentPers)) {
-                personalitySpinner.setSelection(i);
-                break;
-            }
+        for (int i = 0; i < opts.length; i++) {
+            if (opts[i].equals(currentPers)) { persSpinner.setSelection(i); break; }
         }
-        personalitySpinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
-                prefs.setPersonality(personalityOptions[position]);
+        persSpinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(android.widget.AdapterView<?> p, View v, int pos, long id) {
+                prefs.setPersonality(opts[pos]);
             }
-
-            @Override
-            public void onNothingSelected(android.widget.AdapterView<?> parent) {
-            }
+            @Override public void onNothingSelected(android.widget.AdapterView<?> p) {}
         });
-        layout.addView(personalitySpinner);
+        card.addView(persSpinner);
 
-        // Personality Sliders
-        layout.addView(createTraitView("Personality Intensity", prefs.getPersonalityIntensity(),
-                (v) -> prefs.setPersonalityIntensity(v)));
-        layout.addView(createTraitView("Verbosity", prefs.getVerbosity(), (v) -> prefs.setVerbosity(v)));
-        layout.addView(createTraitView("Formality", prefs.getFormality(), (v) -> prefs.setFormality(v)));
-        layout.addView(createTraitView("Humor", prefs.getHumor(), (v) -> prefs.setHumor(v)));
-
-        // Voice Engine Gender
-        TextView voiceLabel = new TextView(this);
-        voiceLabel.setText("TTS Voice Gender:");
-        voiceLabel.setPadding(0, 16, 0, 8);
-        layout.addView(voiceLabel);
-
-        android.widget.Spinner voiceSpinner = new android.widget.Spinner(this);
-        String[] voiceOptions = { "Female", "Male" };
-        android.widget.ArrayAdapter<String> voiceAdapter = new android.widget.ArrayAdapter<>(this,
-                android.R.layout.simple_spinner_dropdown_item, voiceOptions);
-        voiceSpinner.setAdapter(voiceAdapter);
-
-        String currentVoice = prefs.getVoiceGender();
-        voiceSpinner.setSelection(currentVoice.equals("Male") ? 1 : 0);
-        voiceSpinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
-                prefs.setVoiceGender(voiceOptions[position]);
+        // Mood dropdown
+        addLabel(card, "Current Mood");
+        android.widget.Spinner moodSpinner = new android.widget.Spinner(this);
+        String[] moods = {"Neutral", "Cheerful", "Pensive", "Energetic", "Calm", "Playful"};
+        moodSpinner.setAdapter(new android.widget.ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_dropdown_item, moods));
+        String currentMood = prefs.getMood();
+        for (int i = 0; i < moods.length; i++) {
+            if (moods[i].equals(currentMood)) { moodSpinner.setSelection(i); break; }
+        }
+        moodSpinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(android.widget.AdapterView<?> p, View v, int pos, long id) {
+                prefs.setMood(moods[pos]);
             }
-
-            @Override
-            public void onNothingSelected(android.widget.AdapterView<?> parent) {
-            }
+            @Override public void onNothingSelected(android.widget.AdapterView<?> p) {}
         });
-        layout.addView(voiceSpinner);
+        card.addView(moodSpinner);
 
-        // Long-Term Memory Vault
-        TextView memoryTitle = new TextView(this);
-        memoryTitle.setText("\nLong-Term Memory Vault");
-        memoryTitle.setTextSize(16f);
-        layout.addView(memoryTitle);
+        // Sliders
+        card.addView(createSlider("Intensity", prefs.getPersonalityIntensity(), v -> prefs.setPersonalityIntensity(v)));
+        card.addView(createSlider("Verbosity", prefs.getVerbosity(), v -> prefs.setVerbosity(v)));
+        card.addView(createSlider("Formality", prefs.getFormality(), v -> prefs.setFormality(v)));
+        card.addView(createSlider("Humor", prefs.getHumor(), v -> prefs.setHumor(v)));
 
-        layout.addView(
-                createMemoryInput("Your Name", encryptedPrefs.getUserName(), v -> encryptedPrefs.saveUserName(v)));
-        layout.addView(
-                createMemoryInput("Date of Birth", encryptedPrefs.getUserDob(), v -> encryptedPrefs.saveUserDob(v)));
-        layout.addView(createMemoryInput("Family Members/Pets", encryptedPrefs.getFamilyMembers(),
+        return card;
+    }
+
+    private View createVoiceCard() {
+        LinearLayout card = createCard("🔊  Voice Output");
+
+        addLabel(card, "TTS Voice");
+        android.widget.Spinner vSpinner = new android.widget.Spinner(this);
+        String[] vOpts = {"Female", "Male"};
+        vSpinner.setAdapter(new android.widget.ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_dropdown_item, vOpts));
+        vSpinner.setSelection(prefs.getVoiceGender().equals("Male") ? 1 : 0);
+        vSpinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(android.widget.AdapterView<?> p, View v, int pos, long id) {
+                prefs.setVoiceGender(vOpts[pos]);
+            }
+            @Override public void onNothingSelected(android.widget.AdapterView<?> p) {}
+        });
+        card.addView(vSpinner);
+
+        return card;
+    }
+
+    private View createMemoryCard() {
+        LinearLayout card = createCard("🔒  Memory Vault (Encrypted)");
+
+        card.addView(createMemoryInput("Your Name", encryptedPrefs.getUserName(),
+                v -> encryptedPrefs.saveUserName(v)));
+        card.addView(createMemoryInput("Date of Birth", encryptedPrefs.getUserDob(),
+                v -> encryptedPrefs.saveUserDob(v)));
+        card.addView(createMemoryInput("Family / Pets", encryptedPrefs.getFamilyMembers(),
                 v -> encryptedPrefs.saveFamilyMembers(v)));
 
-        // Model Management
-        TextView modelTitle = new TextView(this);
-        modelTitle.setText("\nModel Management");
-        modelTitle.setTextSize(16f);
-        layout.addView(modelTitle);
-
-        Button unloadBtn = new Button(this);
-        unloadBtn.setText("Free Model from RAM");
-        unloadBtn.setOnClickListener(v -> {
-            aiClient.unloadModel();
-            addChatMessage("System", prefs.getSelectedModel() + " model securely unloaded from RAM.");
-        });
-        layout.addView(unloadBtn);
-
-        // System Settings
-        Button assistantSettings = new Button(this);
-        assistantSettings.setText("System Assistant Settings");
-        assistantSettings.setOnClickListener(v -> {
-            startActivity(new Intent(Settings.ACTION_VOICE_INPUT_SETTINGS));
-        });
-        layout.addView(assistantSettings);
-
-        // About Section
-        TextView aboutTitle = new TextView(this);
-        aboutTitle.setText("\nAbout Mate");
-        aboutTitle.setTextSize(16f);
-        layout.addView(aboutTitle);
-
-        TextView aboutContent = new TextView(this);
-        aboutContent.setText(
-                "Mate is a local-first, privacy-focused AI assistant. All AI runs on-device — no data leaves your phone.");
-        aboutContent.setAlpha(0.7f);
-        layout.addView(aboutContent);
-
-        scroll.addView(layout);
-        return scroll;
+        return card;
     }
+
+    private View createAdvancedCard() {
+        LinearLayout card = createCard("⚙️  Advanced");
+
+        TextView freeBtn = createActionButton("Free Model from RAM");
+        freeBtn.setOnClickListener(v -> {
+            aiClient.unloadModel();
+            addChatMessage("System", prefs.getSelectedModel() + " unloaded from RAM.");
+            updateStatusBar();
+        });
+        card.addView(freeBtn);
+
+        TextView sysBtn = createActionButton("System Assistant Settings");
+        sysBtn.setOnClickListener(v -> {
+            try { startActivity(new Intent(Settings.ACTION_VOICE_INPUT_SETTINGS)); }
+            catch (Exception ignored) {}
+        });
+        card.addView(sysBtn);
+
+        // About
+        TextView about = new TextView(this);
+        about.setText("\nMate — local-first, privacy-focused AI.\nAll inference runs 100% on-device.");
+        about.setTextColor(CLR_TEXT_DIM);
+        about.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        about.setPadding(0, dp(8), 0, 0);
+        card.addView(about);
+
+        return card;
+    }
+
+    // ========== UI HELPERS ==========
+
+    private LinearLayout createCard(String title) {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(dp(16), dp(14), dp(16), dp(14));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setCornerRadius(dp(14));
+        bg.setColor(CLR_CARD);
+        card.setBackground(bg);
+        card.setElevation(dp(2));
+
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        params.setMargins(0, dp(6), 0, dp(6));
+        card.setLayoutParams(params);
+
+        TextView header = new TextView(this);
+        header.setText(title);
+        header.setTextColor(Color.WHITE);
+        header.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        header.setTypeface(null, Typeface.BOLD);
+        header.setPadding(0, 0, 0, dp(8));
+        card.addView(header);
+
+        return card;
+    }
+
+    private void addLabel(LinearLayout parent, String text) {
+        TextView label = new TextView(this);
+        label.setText(text);
+        label.setTextColor(CLR_TEXT_DIM);
+        label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        label.setPadding(0, dp(10), 0, dp(2));
+        parent.addView(label);
+    }
+
+    private TextView createActionButton(String text) {
+        TextView btn = new TextView(this);
+        btn.setText(text);
+        btn.setTextColor(Color.WHITE);
+        btn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        btn.setGravity(Gravity.CENTER);
+        btn.setPadding(dp(16), dp(10), dp(16), dp(10));
+        GradientDrawable bg = new GradientDrawable();
+        bg.setCornerRadius(dp(10));
+        bg.setColor(CLR_ACCENT);
+        btn.setBackground(bg);
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        p.setMargins(0, dp(8), 0, dp(4));
+        btn.setLayoutParams(p);
+        return btn;
+    }
+
+    private View createSlider(String label, int current, OnTraitChangeListener listener) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.VERTICAL);
+        row.setPadding(0, dp(8), 0, dp(4));
+
+        TextView tv = new TextView(this);
+        tv.setText(label + ": " + current);
+        tv.setTextColor(CLR_TEXT);
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+
+        SeekBar sb = new SeekBar(this);
+        sb.setMax(10);
+        sb.setProgress(current);
+        sb.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar s, int progress, boolean fromUser) {
+                tv.setText(label + ": " + progress);
+                listener.onChanged(progress);
+            }
+            @Override public void onStartTrackingTouch(SeekBar s) {}
+            @Override public void onStopTrackingTouch(SeekBar s) {}
+        });
+
+        row.addView(tv);
+        row.addView(sb);
+        return row;
+    }
+
+    private LinearLayout createMemoryInput(String label, String currentVal, OnMemoryChangeListener listener) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.VERTICAL);
+        row.setPadding(0, dp(6), 0, dp(6));
+
+        TextView tv = new TextView(this);
+        tv.setText(label);
+        tv.setTextColor(CLR_TEXT_DIM);
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+
+        EditText et = new EditText(this);
+        et.setText(currentVal);
+        et.setHint("Enter " + label.toLowerCase());
+        et.setHintTextColor(Color.parseColor("#505070"));
+        et.setTextColor(CLR_TEXT);
+        et.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        et.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+        et.setPadding(dp(12), dp(8), dp(12), dp(8));
+        GradientDrawable etBg = new GradientDrawable();
+        etBg.setCornerRadius(dp(8));
+        etBg.setColor(CLR_INPUT_BG);
+        et.setBackground(etBg);
+
+        TextView saveBtn = new TextView(this);
+        saveBtn.setText("Save");
+        saveBtn.setTextColor(CLR_ACCENT);
+        saveBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        saveBtn.setTypeface(null, Typeface.BOLD);
+        saveBtn.setPadding(dp(8), dp(6), dp(8), dp(6));
+        saveBtn.setOnClickListener(v -> {
+            listener.onChanged(et.getText().toString().trim());
+            addChatMessage("System", label + " saved securely.");
+        });
+
+        row.addView(tv);
+        row.addView(et);
+        row.addView(saveBtn);
+        return row;
+    }
+
+    // ========== TOGGLE ==========
 
     private void toggleSettings() {
         if (settingsView.getVisibility() == View.VISIBLE) {
@@ -486,42 +628,29 @@ public class MainActivity extends Activity {
         }
     }
 
+    // ========== CHAT LOGIC ==========
+
     private void sendMessage() {
         String query = chatInput.getText().toString().trim();
-        if (query.isEmpty())
-            return;
-
+        if (query.isEmpty()) return;
         addChatMessage("You", query);
         chatInput.setText("");
 
-        // Handle Web Scraping
+        // Web URL handling
         if (query.startsWith("http://") || query.startsWith("https://")) {
-            addChatMessage("System", "Fetching website content...");
+            addChatMessage("System", "Fetching website...");
             new Thread(() -> {
-                String extractedText = WebScraper.fetchAndExtractText(query);
-                if (extractedText.startsWith("Error")) {
-                    runOnUiThread(() -> addChatMessage("Error", extractedText));
+                String text = WebScraper.fetchAndExtractText(query);
+                if (text.startsWith("Error")) {
+                    runOnUiThread(() -> addChatMessage("Error", text));
                     return;
                 }
-
-                String maxText = extractedText.length() > 2500 ? extractedText.substring(0, 2500) : extractedText; // Prevent
-                                                                                                                   // Context
-                                                                                                                   // OOM
-                String summarizePrompt = "Provide a concise summary of the key facts from this webpage text: "
-                        + maxText;
-
-                aiClient.generateResponse(summarizePrompt, "", new AICoreClient.ResponseCallback() {
-                    @Override
-                    public void onSuccess(String response) {
-                        runOnUiThread(() -> {
-                            addChatMessage("Mate (Web Summary)", response);
-                            // Store in Long-Term Memory implicitly
-                            encryptedPrefs.saveUserDob(encryptedPrefs.getUserDob() + " [Web Memory: " + response + "]");
-                        });
+                String maxText = text.length() > 2500 ? text.substring(0, 2500) : text;
+                aiClient.generateResponse("Summarize: " + maxText, "", new AICoreClient.ResponseCallback() {
+                    @Override public void onSuccess(String response) {
+                        runOnUiThread(() -> addChatMessage("Mate", response));
                     }
-
-                    @Override
-                    public void onError(Throwable t) {
+                    @Override public void onError(Throwable t) {
                         runOnUiThread(() -> addChatMessage("Error", t.getMessage()));
                     }
                 });
@@ -529,187 +658,171 @@ public class MainActivity extends Activity {
             return;
         }
 
-        // Standard Chat
+        // Context compaction
         exchangeCount++;
-
         if (exchangeCount >= 5) {
-            // Trigger Context Compaction
-            StringBuilder fullContext = new StringBuilder();
+            StringBuilder ctx = new StringBuilder();
             for (int i = 0; i < chatHistory.getChildCount(); i++) {
                 View v = chatHistory.getChildAt(i);
-                if (v instanceof TextView) {
-                    fullContext.append(((TextView) v).getText().toString()).append("\n");
-                }
+                if (v instanceof TextView) ctx.append(((TextView) v).getText()).append("\n");
             }
-
-            String condensePrompt = "Summarize the key facts and topics discussed in this conversation: \n"
-                    + fullContext.toString();
-            addChatMessage("System", "Condensing conversation memory to save RAM...");
-
-            aiClient.generateResponse(condensePrompt, "", new AICoreClient.ResponseCallback() {
-                @Override
-                public void onSuccess(String summary) {
+            addChatMessage("System", "Compacting memory...");
+            aiClient.generateResponse("Summarize: " + ctx, "", new AICoreClient.ResponseCallback() {
+                @Override public void onSuccess(String summary) {
                     runOnUiThread(() -> {
                         chatHistory.removeAllViews();
-                        addChatMessage("System [Compacted Memory]", summary);
-                        exchangeCount = 0; // Reset
-
-                        // Proceed with the actual user query now that memory is cleared
-                        aiClient.generateResponse(query, summary, new AICoreClient.ResponseCallback() {
-                            @Override
-                            public void onSuccess(String response) {
-                                runOnUiThread(() -> addChatMessage("Mate", response));
-                            }
-
-                            @Override
-                            public void onError(Throwable t) {
-                                runOnUiThread(() -> addChatMessage("Error", t.getMessage()));
-                            }
-                        });
+                        addChatMessage("System", "Memory compacted.");
+                        exchangeCount = 0;
+                        doGenerate(query, summary);
                     });
                 }
-
-                @Override
-                public void onError(Throwable t) {
-                    runOnUiThread(() -> addChatMessage("Error", "Compaction Failed: " + t.getMessage()));
+                @Override public void onError(Throwable t) {
+                    runOnUiThread(() -> addChatMessage("Error", "Compaction: " + t.getMessage()));
                 }
             });
         } else {
-            // Normal message flow
-            aiClient.generateResponse(query, "", new AICoreClient.ResponseCallback() {
-                @Override
-                public void onSuccess(String response) {
-                    runOnUiThread(() -> handleToolResponse(response));
-                }
-
-                @Override
-                public void onError(Throwable t) {
-                    runOnUiThread(() -> addChatMessage("Error", t.getMessage()));
-                }
-            });
+            doGenerate(query, "");
         }
     }
 
-    private void handleToolResponse(String response) {
-        // 1. Check for LAUNCH command
+    private void doGenerate(String query, String context) {
+        // Show typing indicator
+        TextView typingView = new TextView(this);
+        typingView.setText("Mate is thinking...");
+        typingView.setTextColor(CLR_TEXT_DIM);
+        typingView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        typingView.setPadding(dp(16), dp(8), dp(16), dp(8));
+        chatHistory.addView(typingView);
+
+        final long startTime = System.currentTimeMillis();
+        aiClient.generateResponse(query, context, new AICoreClient.ResponseCallback() {
+            @Override
+            public void onSuccess(String response) {
+                runOnUiThread(() -> {
+                    chatHistory.removeView(typingView);
+                    long elapsed = System.currentTimeMillis() - startTime;
+                    handleToolResponse(response, elapsed);
+                });
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                runOnUiThread(() -> {
+                    chatHistory.removeView(typingView);
+                    addChatMessage("Error", t.getMessage());
+                });
+            }
+        });
+    }
+
+    private void handleToolResponse(String response, long elapsedMs) {
         boolean launched = ToolExecutor.handleLaunch(this, response);
-        
-        // 2. Check for SEARCH command
         String searchQuery = ToolExecutor.extractSearchQuery(response);
-        
-        // 3. Display cleaned response
-        String cleanResponse = ToolExecutor.stripCommands(response);
-        if (!cleanResponse.isEmpty()) {
-            addChatMessage("Mate", cleanResponse);
+        String clean = ToolExecutor.stripCommands(response);
+
+        if (!clean.isEmpty()) {
+            String timeStr = String.format("%.1fs", elapsedMs / 1000.0);
+            addChatBubble("Mate", clean, timeStr);
         }
-        
-        if (launched) {
-            addChatMessage("System", "App launched successfully.");
-        }
-        
-        // 4. If SEARCH was requested, fetch results and feed back to LLM
+
+        if (launched) addChatMessage("System", "App launched.");
+
         if (searchQuery != null) {
-            addChatMessage("System", "Searching the web for: " + searchQuery + "...");
+            addChatMessage("System", "Searching: " + searchQuery);
             new Thread(() -> {
                 String results = ToolExecutor.searchWeb(searchQuery);
-                String followUpPrompt = "Here are web search results. Summarize the most relevant information for the user:\n\n" + results;
-                
-                aiClient.generateResponse(followUpPrompt, "", new AICoreClient.ResponseCallback() {
-                    @Override
-                    public void onSuccess(String summary) {
-                        runOnUiThread(() -> addChatMessage("Mate (Web)", ToolExecutor.stripCommands(summary)));
+                aiClient.generateResponse("Summarize search results:\n" + results, "", new AICoreClient.ResponseCallback() {
+                    @Override public void onSuccess(String s) {
+                        runOnUiThread(() -> addChatMessage("Mate", ToolExecutor.stripCommands(s)));
                     }
-                    @Override
-                    public void onError(Throwable t) {
-                        runOnUiThread(() -> addChatMessage("Error", "Search failed: " + t.getMessage()));
+                    @Override public void onError(Throwable t) {
+                        runOnUiThread(() -> addChatMessage("Error", t.getMessage()));
                     }
                 });
             }).start();
         }
     }
 
+    // ========== CHAT BUBBLES ==========
+
     private void addChatMessage(String sender, String message) {
-        TextView tv = new TextView(this);
-        tv.setText(sender + ": " + message);
-        tv.setPadding(16, 8, 16, 8);
+        addChatBubble(sender, message, null);
+    }
+
+    private void addChatBubble(String sender, String message, String timing) {
+        LinearLayout bubble = new LinearLayout(this);
+        bubble.setOrientation(LinearLayout.VERTICAL);
+        bubble.setPadding(dp(14), dp(10), dp(14), dp(10));
 
         GradientDrawable bg = new GradientDrawable();
-        bg.setCornerRadius(16f);
-        bg.setColor(sender.equals("You") ? Color.parseColor("#E3F2FD") : Color.parseColor("#FFFFFF"));
-        tv.setBackground(bg);
+        bg.setCornerRadius(dp(16));
+
+        boolean isUser = sender.equals("You");
+        boolean isSystem = sender.equals("System") || sender.equals("Error");
+
+        if (isUser) {
+            bg.setColor(CLR_USER_BUBBLE);
+        } else if (isSystem) {
+            bg.setColor(Color.parseColor("#1A1A30"));
+            bg.setStroke(1, CLR_TEXT_DIM);
+        } else {
+            bg.setColor(CLR_AI_BUBBLE);
+        }
+        bubble.setBackground(bg);
+
+        // Message text
+        TextView tv = new TextView(this);
+        tv.setText(message);
+        tv.setTextColor(isSystem ? CLR_TEXT_DIM : Color.WHITE);
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        tv.setLineSpacing(dp(2), 1.0f);
+        bubble.addView(tv);
+
+        // Timing label
+        if (timing != null) {
+            TextView timeLabel = new TextView(this);
+            timeLabel.setText(timing);
+            timeLabel.setTextColor(CLR_TEXT_DIM);
+            timeLabel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
+            timeLabel.setPadding(0, dp(4), 0, 0);
+            timeLabel.setGravity(Gravity.END);
+            bubble.addView(timeLabel);
+        }
 
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        params.setMargins(0, 8, 0, 8);
-        params.gravity = sender.equals("You") ? Gravity.END : Gravity.START;
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        params.setMargins(isUser ? dp(48) : 0, dp(4), isUser ? 0 : dp(48), dp(4));
+        params.gravity = isUser ? Gravity.END : Gravity.START;
 
-        chatHistory.addView(tv, params);
+        chatHistory.addView(bubble, params);
+
+        // Auto-scroll
+        ((ScrollView) chatHistory.getParent()).post(() ->
+                ((ScrollView) chatHistory.getParent()).fullScroll(View.FOCUS_DOWN));
     }
 
-    private LinearLayout createTraitView(String label, int currentVal, OnTraitChangeListener listener) {
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.VERTICAL);
-        row.setPadding(0, 16, 0, 16);
-        TextView tv = new TextView(this);
-        tv.setText(label + ": " + currentVal);
-        SeekBar sb = new SeekBar(this);
-        sb.setMax(10);
-        sb.setProgress(currentVal);
-        sb.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                tv.setText(label + ": " + progress);
-                listener.onChanged(progress);
+    // ========== UTILITIES ==========
+
+    private int dp(int value) {
+        return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value,
+                getResources().getDisplayMetrics());
+    }
+
+    private boolean isMateDefaultAssistant() {
+        boolean isRoleHeld = false;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            android.app.role.RoleManager rm = getSystemService(android.app.role.RoleManager.class);
+            if (rm != null && rm.isRoleAvailable(android.app.role.RoleManager.ROLE_ASSISTANT)) {
+                isRoleHeld = rm.isRoleHeld(android.app.role.RoleManager.ROLE_ASSISTANT);
             }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-            }
-        });
-        row.addView(tv);
-        row.addView(sb);
-        return row;
+        }
+        String assistant = Settings.Secure.getString(getContentResolver(), "assistant");
+        boolean isSecure = assistant != null && assistant.contains("com.abettergemini.assistant");
+        String voice = Settings.Secure.getString(getContentResolver(), "voice_interaction_service");
+        boolean isVoice = voice != null && voice.contains("com.abettergemini.assistant");
+        return isRoleHeld || isSecure || isVoice;
     }
 
-    private LinearLayout createMemoryInput(String label, String currentVal, OnMemoryChangeListener listener) {
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.VERTICAL);
-        row.setPadding(0, 8, 0, 8);
-        TextView tv = new TextView(this);
-        tv.setText(label);
-        EditText et = new EditText(this);
-        et.setText(currentVal);
-        et.setHint("Enter " + label.toLowerCase());
-        et.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
-
-        Button saveBtn = new Button(this);
-        saveBtn.setText("Save");
-        saveBtn.setOnClickListener(v -> {
-            listener.onChanged(et.getText().toString().trim());
-            addChatMessage("System", label + " securely vaulted.");
-        });
-
-        LinearLayout inputRow = new LinearLayout(this);
-        inputRow.setOrientation(LinearLayout.HORIZONTAL);
-        LinearLayout.LayoutParams param = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT,
-                1.0f);
-        inputRow.addView(et, param);
-        inputRow.addView(saveBtn);
-
-        row.addView(tv);
-        row.addView(inputRow);
-        return row;
-    }
-
-    interface OnTraitChangeListener {
-        void onChanged(int value);
-    }
-
-    interface OnMemoryChangeListener {
-        void onChanged(String value);
-    }
+    interface OnTraitChangeListener { void onChanged(int value); }
+    interface OnMemoryChangeListener { void onChanged(String value); }
 }

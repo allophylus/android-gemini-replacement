@@ -22,6 +22,7 @@ class AICoreClient(private val context: Context) {
     private var isDownloading = false
     private var isGenerating = false
     private var downloadProgress = 0
+    private var modelLoadTimeMs: Long = 0
 
     init {
         initializeLlm()
@@ -63,12 +64,14 @@ class AICoreClient(private val context: Context) {
      * Actually loads a model file into the appropriate backend.
      */
     private fun loadModelFile(modelConfig: ModelConfig, modelFile: java.io.File) {
+        val loadStart = System.currentTimeMillis()
         when (modelConfig.backend) {
             ModelConfig.Backend.LLAMA_CPP -> {
                 val backend = LlamaCppBackend(context)
                 if (backend.loadModel(modelFile.absolutePath)) {
                     llamaCppBackend = backend
-                    Log.d(TAG, "llama.cpp backend initialized: ${modelConfig.displayName}")
+                    modelLoadTimeMs = System.currentTimeMillis() - loadStart
+                    Log.d(TAG, "llama.cpp backend initialized in ${modelLoadTimeMs}ms: ${modelConfig.displayName}")
                 } else {
                     throw Exception("Failed to load GGUF model via llama.cpp")
                 }
@@ -86,8 +89,31 @@ class AICoreClient(private val context: Context) {
                     .build()
 
                 llmInference = LlmInference.createFromOptions(context, options)
-                Log.d(TAG, "MediaPipe LlmInference initialized: ${modelConfig.displayName}")
+                modelLoadTimeMs = System.currentTimeMillis() - loadStart
+                Log.d(TAG, "MediaPipe LlmInference initialized in ${modelLoadTimeMs}ms: ${modelConfig.displayName}")
             }
+        }
+    }
+
+    /**
+     * Returns whether the model is loaded and ready for inference.
+     */
+    fun isModelReady(): Boolean {
+        return llmInference != null || llamaCppBackend?.isReady == true
+    }
+
+    /**
+     * Returns a status text string for the UI status bar.
+     */
+    fun getStatusText(): String {
+        return when {
+            isModelReady() -> {
+                val timeStr = if (modelLoadTimeMs > 0) " (${modelLoadTimeMs / 1000.0}s)" else ""
+                "✅ Ready$timeStr"
+            }
+            isDownloading -> "📥 Downloading $downloadProgress%"
+            isInitializing -> "⏳ Loading..."
+            else -> "⚠️ Not loaded"
         }
     }
 
