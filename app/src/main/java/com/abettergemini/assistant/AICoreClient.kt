@@ -50,36 +50,43 @@ class AICoreClient(private val context: Context) {
                     }
                 }
 
-                when (modelConfig.backend) {
-                    ModelConfig.Backend.LLAMA_CPP -> {
-                        val backend = LlamaCppBackend(context)
-                        if (backend.loadModel(modelFile.absolutePath)) {
-                            llamaCppBackend = backend
-                            Log.d(TAG, "llama.cpp backend initialized: ${modelConfig.displayName}")
-                        } else {
-                            throw Exception("Failed to load GGUF model via llama.cpp")
-                        }
-                    }
-                    ModelConfig.Backend.MEDIAPIPE -> {
-                        val options = LlmInference.LlmInferenceOptions.builder()
-                            .setModelPath(modelFile.absolutePath)
-                            .setMaxTokens(1024)
-                            .setTopK(40)
-                            .setTemperature(0.7f)
-                            .setResultListener { partialResult, done -> }
-                            .setErrorListener { error ->
-                                Log.e(TAG, "LlmInference Error: " + error.message)
-                            }
-                            .build()
-
-                        llmInference = LlmInference.createFromOptions(context, options)
-                        Log.d(TAG, "MediaPipe LlmInference initialized: ${modelConfig.displayName}")
-                    }
-                }
+                loadModelFile(modelConfig, modelFile)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to initialize model: " + e.message, e)
             } finally {
                 isInitializing = false
+            }
+        }
+    }
+
+    /**
+     * Actually loads a model file into the appropriate backend.
+     */
+    private fun loadModelFile(modelConfig: ModelConfig, modelFile: java.io.File) {
+        when (modelConfig.backend) {
+            ModelConfig.Backend.LLAMA_CPP -> {
+                val backend = LlamaCppBackend(context)
+                if (backend.loadModel(modelFile.absolutePath)) {
+                    llamaCppBackend = backend
+                    Log.d(TAG, "llama.cpp backend initialized: ${modelConfig.displayName}")
+                } else {
+                    throw Exception("Failed to load GGUF model via llama.cpp")
+                }
+            }
+            ModelConfig.Backend.MEDIAPIPE -> {
+                val options = LlmInference.LlmInferenceOptions.builder()
+                    .setModelPath(modelFile.absolutePath)
+                    .setMaxTokens(1024)
+                    .setTopK(40)
+                    .setTemperature(0.7f)
+                    .setResultListener { partialResult, done -> }
+                    .setErrorListener { error ->
+                        Log.e(TAG, "LlmInference Error: " + error.message)
+                    }
+                    .build()
+
+                llmInference = LlmInference.createFromOptions(context, options)
+                Log.d(TAG, "MediaPipe LlmInference initialized: ${modelConfig.displayName}")
             }
         }
     }
@@ -98,14 +105,29 @@ class AICoreClient(private val context: Context) {
 
     /**
      * Public method to explicitly start the download (e.g. after user agrees to cellular warning)
+     * After download completes, automatically loads the model.
      */
     fun startDownloadExplicitly() {
         val modelConfig = prefs.selectedModelConfig
         val destDir = context.getExternalFilesDir(null) ?: context.filesDir
         val modelFile = java.io.File(destDir, modelConfig.fileName)
         scope.launch(Dispatchers.IO) {
-            downloadModel(modelFile)
+            try {
+                downloadModel(modelFile)
+                loadModelFile(modelConfig, modelFile)
+            } catch (e: Exception) {
+                Log.e(TAG, "Download/load failed: " + e.message, e)
+            }
         }
+    }
+
+    /**
+     * Unloads the current model and reinitializes with the currently selected one.
+     * Call this when the user changes their model selection in Settings.
+     */
+    fun switchModel() {
+        unloadModel()
+        initializeLlm()
     }
 
     /**
@@ -223,10 +245,6 @@ class AICoreClient(private val context: Context) {
                 scope.launch(Dispatchers.Main) {
                     listener.onProgress(100)
                 }
-            }
-            // Auto-load the model after successful download
-            if (targetFile.exists() && targetFile.length() > 0) {
-                initializeLlm()
             }
         }
     }

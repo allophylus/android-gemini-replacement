@@ -144,7 +144,7 @@ public class MainActivity extends Activity {
 
             if (percent >= 100) {
                 downloadBar.setVisibility(View.GONE);
-                aiCheck.setText("- " + prefs.getSelectedModel() + ": ✅ Ready");
+                aiCheck.setText("- " + prefs.getSelectedModel() + ": ⚙️ Loading model...");
             }
         });
 
@@ -331,9 +331,16 @@ public class MainActivity extends Activity {
         modelSpinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
-                prefs.setSelectedModel(models[position].displayName);
+                String newModel = models[position].displayName;
+                String currentModel = prefs.getSelectedModel();
+                prefs.setSelectedModel(newModel);
                 String bLabel = models[position].backend == ModelConfig.Backend.LLAMA_CPP ? "Engine: llama.cpp" : "Engine: MediaPipe";
                 modelDescView.setText(models[position].description + "\n" + bLabel);
+                // Reload model if selection changed
+                if (!newModel.equals(currentModel)) {
+                    aiClient.switchModel();
+                    addChatMessage("System", "Switching to " + newModel + "...");
+                }
             }
             @Override
             public void onNothingSelected(android.widget.AdapterView<?> parent) {}
@@ -344,8 +351,7 @@ public class MainActivity extends Activity {
         Button downloadModelBtn = new Button(this);
         downloadModelBtn.setText("Download Selected Model");
         downloadModelBtn.setOnClickListener(v -> {
-            aiClient.unloadModel(); // Clear old model first
-            aiClient.startDownloadExplicitly();
+            aiClient.switchModel();
             addChatMessage("System", "Downloading " + prefs.getSelectedModel() + "...");
         });
         layout.addView(downloadModelBtn);
