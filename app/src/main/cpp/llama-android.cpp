@@ -91,8 +91,10 @@ Java_com_abettergemini_assistant_LlamaCppBackend_nativeGenerate(
     return env->NewStringUTF("Error: tokenization failed");
   }
   tokens.resize(n_tokens);
+  LOGI("Tokenized prompt: %d tokens", n_tokens);
 
-  // KV cache is now managed internally by llama.cpp — no manual clear needed
+  // Clear KV cache before each new generation to avoid context accumulation
+  llama_kv_self_clear(ctx);
 
   // Evaluate prompt tokens
   llama_batch batch = llama_batch_init(tokens.size(), 0, 1);
@@ -101,16 +103,19 @@ Java_com_abettergemini_assistant_LlamaCppBackend_nativeGenerate(
   }
   batch.logits[batch.n_tokens - 1] = true;
 
+  LOGI("Evaluating prompt...");
   if (llama_decode(ctx, batch) != 0) {
     LOGE("Decode failed during prompt evaluation");
     llama_batch_free(batch);
     return env->NewStringUTF("Error: decode failed");
   }
+  LOGI("Prompt evaluated, starting generation...");
 
   // Generate tokens
   std::string result;
   llama_sampler *smpl =
       llama_sampler_chain_init(llama_sampler_chain_default_params());
+  llama_sampler_chain_add(smpl, llama_sampler_init_top_k(40));
   llama_sampler_chain_add(smpl, llama_sampler_init_temp(0.7f));
   llama_sampler_chain_add(smpl, llama_sampler_init_dist(42));
 
@@ -119,6 +124,7 @@ Java_com_abettergemini_assistant_LlamaCppBackend_nativeGenerate(
     llama_token new_token = llama_sampler_sample(smpl, ctx, -1);
 
     if (llama_vocab_is_eog(vocab, new_token)) {
+      LOGI("EOS token at step %d", i);
       break;
     }
 
@@ -133,7 +139,7 @@ Java_com_abettergemini_assistant_LlamaCppBackend_nativeGenerate(
     n_cur++;
 
     if (llama_decode(ctx, batch) != 0) {
-      LOGE("Decode failed during generation");
+      LOGE("Decode failed at step %d", i);
       break;
     }
   }
@@ -141,7 +147,7 @@ Java_com_abettergemini_assistant_LlamaCppBackend_nativeGenerate(
   llama_sampler_free(smpl);
   llama_batch_free(batch);
 
-  LOGI("Generated %zu chars", result.size());
+  LOGI("Generated %zu chars in %d steps", result.size(), n_cur - n_tokens);
   return env->NewStringUTF(result.c_str());
 }
 
