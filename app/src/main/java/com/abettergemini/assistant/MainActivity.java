@@ -192,8 +192,7 @@ public class MainActivity extends Activity {
             statusProgress.setVisibility(View.VISIBLE);
             statusProgress.setProgress(percent);
             statusText.setText("📥 " + percent + "%");
-            ((TextView) ((LinearLayout)((LinearLayout) bar.getChildAt(0)).getChildAt(0)))
-                    .setText(prefs.getSelectedModel());
+            modelChip.setText(prefs.getSelectedModel());
             if (percent >= 100) {
                 statusProgress.setVisibility(View.GONE);
                 statusText.setText("⚙️ Loading...");
