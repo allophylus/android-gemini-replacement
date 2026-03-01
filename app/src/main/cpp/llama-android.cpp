@@ -94,8 +94,10 @@ Java_com_abettergemini_assistant_LlamaCppBackend_nativeGenerate(
   tokens.resize(n_tokens);
   LOGI("Tokenized prompt: %d tokens", n_tokens);
 
-  // Clear KV cache before each new generation to avoid context accumulation
-  llama_kv_self_clear(ctx);
+  // Note: no KV cache clear API available in this llama.cpp version.
+  // The prompt is re-evaluated from position 0 each call, which naturally
+  // overwrites the relevant KV cache entries. Combined with repetition
+  // penalty and time limits, this prevents loops.
 
   // Evaluate prompt tokens
   llama_batch batch = llama_batch_init(tokens.size(), 0, 1);
@@ -119,8 +121,8 @@ Java_com_abettergemini_assistant_LlamaCppBackend_nativeGenerate(
   llama_sampler_chain_add(smpl, llama_sampler_init_top_k(40));
   llama_sampler_chain_add(smpl, llama_sampler_init_top_p(0.9f, 1));
   llama_sampler_chain_add(smpl, llama_sampler_init_temp(0.7f));
-  llama_sampler_chain_add(
-      smpl, llama_sampler_init_penalties(8192, 3, 1.3f, 0.0f, 0.0f));
+  llama_sampler_chain_add(smpl,
+                          llama_sampler_init_penalties(64, 1.3f, 0.0f, 0.0f));
   llama_sampler_chain_add(smpl, llama_sampler_init_dist(42));
 
   int n_cur = n_tokens;
