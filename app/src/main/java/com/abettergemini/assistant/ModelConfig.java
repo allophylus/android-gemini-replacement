@@ -51,19 +51,19 @@ public class ModelConfig {
                 // ===== llama.cpp Models (GGUF) — Public Downloads =====
                 new ModelConfig(
                         "Qwen2-VL 2B",
-                        "qwen2-vl-2b-instruct-q4_k_m.gguf",
-                        "https://huggingface.co/Qwen/Qwen2-VL-2B-Instruct-GGUF/resolve/main/qwen2-vl-2b-instruct-q4_k_m.gguf",
-                        1000000000L,
+                        "Qwen2-VL-2B-Instruct-Q4_K_M.gguf",
+                        "https://huggingface.co/ggml-org/Qwen2-VL-2B-Instruct-GGUF/resolve/main/Qwen2-VL-2B-Instruct-Q4_K_M.gguf",
+                        500000000L,
                         "Alibaba. Chat + vision. Strong OCR and image understanding.",
-                        Backend.LLAMA_CPP, true, "~1.6GB"
+                        Backend.LLAMA_CPP, true, "~1.0GB"
                 ),
                 new ModelConfig(
                         "Phi-3.5 Mini",
-                        "phi-3.5-mini-instruct-q4_k_m.gguf",
+                        "Phi-3.5-mini-instruct-Q4_K_M.gguf",
                         "https://huggingface.co/bartowski/Phi-3.5-mini-instruct-GGUF/resolve/main/Phi-3.5-mini-instruct-Q4_K_M.gguf",
                         1500000000L,
                         "Microsoft. Best reasoning at this size. Text-only.",
-                        Backend.LLAMA_CPP, false, "~1.8GB"
+                        Backend.LLAMA_CPP, false, "~2.3GB"
                 )
         };
     }
