@@ -1,4 +1,5 @@
 #include <android/log.h>
+#include <chrono>
 #include <jni.h>
 #include <string>
 #include <vector>
@@ -116,11 +117,26 @@ Java_com_abettergemini_assistant_LlamaCppBackend_nativeGenerate(
   llama_sampler *smpl =
       llama_sampler_chain_init(llama_sampler_chain_default_params());
   llama_sampler_chain_add(smpl, llama_sampler_init_top_k(40));
+  llama_sampler_chain_add(smpl, llama_sampler_init_top_p(0.9f, 1));
   llama_sampler_chain_add(smpl, llama_sampler_init_temp(0.7f));
+  llama_sampler_chain_add(
+      smpl, llama_sampler_init_penalties(8192, 3, 1.3f, 0.0f, 0.0f));
   llama_sampler_chain_add(smpl, llama_sampler_init_dist(42));
 
   int n_cur = n_tokens;
+  auto start_time = std::chrono::steady_clock::now();
+  const int TIME_LIMIT_SECS = 30;
+
   for (int i = 0; i < maxTokens; i++) {
+    // Check time limit
+    auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
+                       std::chrono::steady_clock::now() - start_time)
+                       .count();
+    if (elapsed > TIME_LIMIT_SECS) {
+      LOGI("Time limit reached (%ds) at step %d", TIME_LIMIT_SECS, i);
+      break;
+    }
+
     llama_token new_token = llama_sampler_sample(smpl, ctx, -1);
 
     if (llama_vocab_is_eog(vocab, new_token)) {

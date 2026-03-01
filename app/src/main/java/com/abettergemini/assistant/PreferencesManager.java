@@ -17,6 +17,7 @@ public class PreferencesManager {
     private static final String KEY_VOICE_GENDER = "voice_gender";
     private static final String KEY_SELECTED_MODEL = "selected_model";
     private static final String KEY_MOOD = "mood";
+    private static final String KEY_DARK_MODE = "dark_mode";
 
     private final SharedPreferences prefs;
     private final EncryptedPrefsManager encryptedPrefs;
@@ -99,7 +100,7 @@ public class PreferencesManager {
     }
 
     public String getSelectedModel() {
-        return prefs.getString(KEY_SELECTED_MODEL, "SmolVLM 500M");
+        return prefs.getString(KEY_SELECTED_MODEL, "Qwen2-VL 2B");
     }
 
     public void setSelectedModel(String value) {
@@ -116,6 +117,14 @@ public class PreferencesManager {
 
     public void setMood(String value) {
         prefs.edit().putString(KEY_MOOD, value).apply();
+    }
+
+    public boolean isDarkMode() {
+        return prefs.getBoolean(KEY_DARK_MODE, true);
+    }
+
+    public void setDarkMode(boolean value) {
+        prefs.edit().putBoolean(KEY_DARK_MODE, value).apply();
     }
 
     public String generateSystemPrompt() {

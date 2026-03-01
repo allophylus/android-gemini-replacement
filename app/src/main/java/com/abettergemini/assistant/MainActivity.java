@@ -28,6 +28,7 @@ public class MainActivity extends Activity {
     private PreferencesManager prefs;
     private EncryptedPrefsManager encryptedPrefs;
     private AICoreClient aiClient;
+    private ThemeManager theme;
 
     // UI refs
     private LinearLayout chatHistory;
@@ -53,29 +54,17 @@ public class MainActivity extends Activity {
         }
     };
 
-    // Colors
-    private static final int CLR_BG = Color.parseColor("#0F0F1A");
-    private static final int CLR_SURFACE = Color.parseColor("#1A1A2E");
-    private static final int CLR_CARD = Color.parseColor("#242442");
-    private static final int CLR_ACCENT = Color.parseColor("#6C63FF");
-    private static final int CLR_ACCENT2 = Color.parseColor("#FF6584");
-    private static final int CLR_TEXT = Color.parseColor("#E8E8F0");
-    private static final int CLR_TEXT_DIM = Color.parseColor("#9090B0");
-    private static final int CLR_INPUT_BG = Color.parseColor("#2A2A48");
-    private static final int CLR_USER_BUBBLE = Color.parseColor("#6C63FF");
-    private static final int CLR_AI_BUBBLE = Color.parseColor("#2A2A48");
-    private static final int CLR_SUCCESS = Color.parseColor("#4CAF50");
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         prefs = new PreferencesManager(this);
         encryptedPrefs = new EncryptedPrefsManager(this);
         aiClient = new AICoreClient(this);
+        theme = new ThemeManager(prefs.isDarkMode());
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(CLR_BG);
+        root.setBackgroundColor(theme.bg());
 
         // === Header Bar ===
         root.addView(createHeaderBar());
@@ -118,20 +107,31 @@ public class MainActivity extends Activity {
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setPadding(dp(20), dp(16), dp(20), dp(12));
         bar.setGravity(Gravity.CENTER_VERTICAL);
-        bar.setBackgroundColor(CLR_SURFACE);
+        bar.setBackgroundColor(theme.surface());
 
         // App title
         TextView title = new TextView(this);
         title.setText("Mate");
         title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 24);
-        title.setTextColor(Color.WHITE);
+        title.setTextColor(theme.headerText());
         title.setTypeface(null, Typeface.BOLD);
         bar.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
+
+        // Sun/Moon toggle
+        TextView themeBtn = new TextView(this);
+        themeBtn.setText(theme.isDarkMode() ? "☀️" : "🌙");
+        themeBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
+        themeBtn.setPadding(dp(12), dp(8), dp(12), dp(8));
+        themeBtn.setOnClickListener(v -> {
+            prefs.setDarkMode(!prefs.isDarkMode());
+            recreate();
+        });
+        bar.addView(themeBtn);
 
         // Gear icon
         ImageButton gearBtn = new ImageButton(this);
         gearBtn.setImageResource(android.R.drawable.ic_menu_preferences);
-        gearBtn.setColorFilter(CLR_TEXT);
+        gearBtn.setColorFilter(theme.textDim());
         gearBtn.setBackgroundColor(Color.TRANSPARENT);
         gearBtn.setPadding(dp(8), dp(8), dp(8), dp(8));
         gearBtn.setOnClickListener(v -> toggleSettings());
@@ -146,7 +146,7 @@ public class MainActivity extends Activity {
         LinearLayout bar = new LinearLayout(this);
         bar.setOrientation(LinearLayout.VERTICAL);
         bar.setPadding(dp(20), dp(10), dp(20), dp(10));
-        bar.setBackgroundColor(CLR_SURFACE);
+        bar.setBackgroundColor(theme.surface());
 
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
@@ -155,14 +155,14 @@ public class MainActivity extends Activity {
         // Model name chip
         TextView modelChip = new TextView(this);
         modelChip.setText(prefs.getSelectedModel());
-        modelChip.setTextColor(CLR_ACCENT);
+        modelChip.setTextColor(ThemeManager.ACCENT);
         modelChip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
         modelChip.setTypeface(null, Typeface.BOLD);
         modelChip.setPadding(dp(10), dp(4), dp(10), dp(4));
         GradientDrawable chipBg = new GradientDrawable();
         chipBg.setCornerRadius(dp(12));
-        chipBg.setColor(Color.parseColor("#1E1E3F"));
-        chipBg.setStroke(1, CLR_ACCENT);
+        chipBg.setColor(theme.chipBg());
+        chipBg.setStroke(1, ThemeManager.ACCENT);
         modelChip.setBackground(chipBg);
         row.addView(modelChip);
 
@@ -172,7 +172,7 @@ public class MainActivity extends Activity {
 
         // Status text
         statusText = new TextView(this);
-        statusText.setTextColor(CLR_TEXT_DIM);
+        statusText.setTextColor(theme.textDim());
         statusText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
         row.addView(statusText);
 
@@ -201,7 +201,7 @@ public class MainActivity extends Activity {
 
         // Thin separator line
         View sep = new View(this);
-        sep.setBackgroundColor(Color.parseColor("#2A2A48"));
+        sep.setBackgroundColor(theme.separator());
         bar.addView(sep, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1)));
 
         updateStatusBar();
@@ -246,18 +246,18 @@ public class MainActivity extends Activity {
         inputArea.setOrientation(LinearLayout.HORIZONTAL);
         inputArea.setGravity(Gravity.CENTER_VERTICAL);
         inputArea.setPadding(dp(12), dp(8), dp(12), dp(12));
-        inputArea.setBackgroundColor(CLR_SURFACE);
+        inputArea.setBackgroundColor(theme.surface());
 
         chatInput = new EditText(this);
         chatInput.setHint("Ask Mate anything...");
-        chatInput.setHintTextColor(CLR_TEXT_DIM);
-        chatInput.setTextColor(CLR_TEXT);
+        chatInput.setHintTextColor(theme.inputHint());
+        chatInput.setTextColor(theme.text());
         chatInput.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
         chatInput.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
         chatInput.setPadding(dp(16), dp(12), dp(16), dp(12));
         GradientDrawable inputBg = new GradientDrawable();
         inputBg.setCornerRadius(dp(24));
-        inputBg.setColor(CLR_INPUT_BG);
+        inputBg.setColor(theme.inputBg());
         chatInput.setBackground(inputBg);
         inputArea.addView(chatInput, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
 
@@ -270,7 +270,7 @@ public class MainActivity extends Activity {
         int btnSize = dp(44);
         GradientDrawable sendBg = new GradientDrawable();
         sendBg.setShape(GradientDrawable.OVAL);
-        sendBg.setColor(CLR_ACCENT);
+        sendBg.setColor(ThemeManager.ACCENT);
         sendBtn.setBackground(sendBg);
         sendBtn.setOnClickListener(v -> sendMessage());
         LinearLayout.LayoutParams sendParams = new LinearLayout.LayoutParams(btnSize, btnSize);
@@ -293,7 +293,7 @@ public class MainActivity extends Activity {
         // Back button
         TextView backBtn = new TextView(this);
         backBtn.setText("← Back to Chat");
-        backBtn.setTextColor(CLR_ACCENT);
+        backBtn.setTextColor(ThemeManager.ACCENT);
         backBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         backBtn.setPadding(dp(4), dp(8), dp(8), dp(16));
         backBtn.setOnClickListener(v -> toggleSettings());
@@ -501,7 +501,7 @@ public class MainActivity extends Activity {
         card.setPadding(dp(16), dp(14), dp(16), dp(14));
         GradientDrawable bg = new GradientDrawable();
         bg.setCornerRadius(dp(14));
-        bg.setColor(CLR_CARD);
+        bg.setColor(theme.card());
         card.setBackground(bg);
         card.setElevation(dp(2));
 
@@ -512,7 +512,7 @@ public class MainActivity extends Activity {
 
         TextView header = new TextView(this);
         header.setText(title);
-        header.setTextColor(Color.WHITE);
+        header.setTextColor(theme.headerText());
         header.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
         header.setTypeface(null, Typeface.BOLD);
         header.setPadding(0, 0, 0, dp(8));
@@ -524,7 +524,7 @@ public class MainActivity extends Activity {
     private void addLabel(LinearLayout parent, String text) {
         TextView label = new TextView(this);
         label.setText(text);
-        label.setTextColor(CLR_TEXT_DIM);
+        label.setTextColor(theme.textDim());
         label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
         label.setPadding(0, dp(10), 0, dp(2));
         parent.addView(label);
@@ -539,7 +539,7 @@ public class MainActivity extends Activity {
         btn.setPadding(dp(16), dp(10), dp(16), dp(10));
         GradientDrawable bg = new GradientDrawable();
         bg.setCornerRadius(dp(10));
-        bg.setColor(CLR_ACCENT);
+        bg.setColor(ThemeManager.ACCENT);
         btn.setBackground(bg);
         LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -555,7 +555,7 @@ public class MainActivity extends Activity {
 
         TextView tv = new TextView(this);
         tv.setText(label + ": " + current);
-        tv.setTextColor(CLR_TEXT);
+        tv.setTextColor(theme.text());
         tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
 
         SeekBar sb = new SeekBar(this);
@@ -582,25 +582,25 @@ public class MainActivity extends Activity {
 
         TextView tv = new TextView(this);
         tv.setText(label);
-        tv.setTextColor(CLR_TEXT_DIM);
+        tv.setTextColor(theme.textDim());
         tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
 
         EditText et = new EditText(this);
         et.setText(currentVal);
         et.setHint("Enter " + label.toLowerCase());
-        et.setHintTextColor(Color.parseColor("#505070"));
-        et.setTextColor(CLR_TEXT);
+        et.setHintTextColor(theme.inputHint());
+        et.setTextColor(theme.text());
         et.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         et.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
         et.setPadding(dp(12), dp(8), dp(12), dp(8));
         GradientDrawable etBg = new GradientDrawable();
         etBg.setCornerRadius(dp(8));
-        etBg.setColor(CLR_INPUT_BG);
+        etBg.setColor(theme.inputBg());
         et.setBackground(etBg);
 
         TextView saveBtn = new TextView(this);
         saveBtn.setText("Save");
-        saveBtn.setTextColor(CLR_ACCENT);
+        saveBtn.setTextColor(ThemeManager.ACCENT);
         saveBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
         saveBtn.setTypeface(null, Typeface.BOLD);
         saveBtn.setPadding(dp(8), dp(6), dp(8), dp(6));
@@ -760,19 +760,19 @@ public class MainActivity extends Activity {
         boolean isSystem = sender.equals("System") || sender.equals("Error");
 
         if (isUser) {
-            bg.setColor(CLR_USER_BUBBLE);
+            bg.setColor(theme.userBubble());
         } else if (isSystem) {
-            bg.setColor(Color.parseColor("#1A1A30"));
-            bg.setStroke(1, CLR_TEXT_DIM);
+            bg.setColor(theme.systemBubble());
+            bg.setStroke(1, theme.textDim());
         } else {
-            bg.setColor(CLR_AI_BUBBLE);
+            bg.setColor(theme.aiBubble());
         }
         bubble.setBackground(bg);
 
         // Message text
         TextView tv = new TextView(this);
         tv.setText(message);
-        tv.setTextColor(isSystem ? CLR_TEXT_DIM : Color.WHITE);
+        tv.setTextColor(isSystem ? theme.textDim() : (isUser ? Color.WHITE : theme.aiBubbleText()));
         tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         tv.setLineSpacing(dp(2), 1.0f);
         bubble.addView(tv);
@@ -781,7 +781,7 @@ public class MainActivity extends Activity {
         if (timing != null) {
             TextView timeLabel = new TextView(this);
             timeLabel.setText(timing);
-            timeLabel.setTextColor(CLR_TEXT_DIM);
+            timeLabel.setTextColor(theme.textDim());
             timeLabel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
             timeLabel.setPadding(0, dp(4), 0, 0);
             timeLabel.setGravity(Gravity.END);

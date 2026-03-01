@@ -148,12 +148,34 @@ class AICoreClient(private val context: Context) {
     }
 
     /**
-     * Unloads the current model and reinitializes with the currently selected one.
-     * Call this when the user changes their model selection in Settings.
+     * Unloads the current model and loads the newly selected one.
+     * If the new model file doesn't exist, triggers a download.
      */
     fun switchModel() {
         unloadModel()
-        initializeLlm()
+        isInitializing = false  // Reset flag so we don't get blocked
+
+        val modelConfig = prefs.selectedModelConfig
+        val destDir = context.getExternalFilesDir(null) ?: context.filesDir
+        val modelFile = java.io.File(destDir, modelConfig.fileName)
+
+        if (modelFile.exists() && modelFile.length() > modelConfig.minFileSize / 2) {
+            // Model file exists, just load it
+            scope.launch(Dispatchers.IO) {
+                try {
+                    isInitializing = true
+                    loadModelFile(modelConfig, modelFile)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to load model: ${e.message}", e)
+                } finally {
+                    isInitializing = false
+                }
+            }
+        } else {
+            // Model file doesn't exist, download it
+            Log.d(TAG, "Model file not found for ${modelConfig.displayName}, starting download...")
+            startDownloadExplicitly()
+        }
     }
 
     /**
