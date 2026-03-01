@@ -2,6 +2,7 @@
 #include <chrono>
 #include <jni.h>
 #include <string>
+#include <thread>
 #include <vector>
 
 // llama.cpp headers
@@ -58,7 +59,14 @@ Java_com_abettergemini_assistant_LlamaCppBackend_nativeCreateContext(
   auto *model = reinterpret_cast<llama_model *>(modelPtr);
   llama_context_params ctx_params = llama_context_default_params();
   ctx_params.n_ctx = nCtx;
-  ctx_params.n_batch = 512;
+  ctx_params.n_batch = 256;
+
+  // Use all available CPU cores for maximum speed
+  int n_cores = std::thread::hardware_concurrency();
+  if (n_cores <= 0)
+    n_cores = 4;
+  ctx_params.n_threads = n_cores;
+  ctx_params.n_threads_batch = n_cores;
 
   llama_context *ctx = llama_init_from_model(model, ctx_params);
   if (!ctx) {
@@ -66,7 +74,7 @@ Java_com_abettergemini_assistant_LlamaCppBackend_nativeCreateContext(
     return 0;
   }
 
-  LOGI("Context created with n_ctx=%d", nCtx);
+  LOGI("Context created with n_ctx=%d, n_threads=%d", nCtx, n_cores);
   return reinterpret_cast<jlong>(ctx);
 }
 
@@ -127,7 +135,7 @@ Java_com_abettergemini_assistant_LlamaCppBackend_nativeGenerate(
 
   int n_cur = n_tokens;
   auto start_time = std::chrono::steady_clock::now();
-  const int TIME_LIMIT_SECS = 30;
+  const int TIME_LIMIT_SECS = 60;
 
   for (int i = 0; i < maxTokens; i++) {
     // Check time limit
