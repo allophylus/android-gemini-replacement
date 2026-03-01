@@ -14,10 +14,12 @@ import kotlinx.coroutines.launch
 class AICoreClient(private val context: Context) {
 
     private val prefs = PreferencesManager(context)
+    private val encryptedPrefs = EncryptedPrefsManager(context)
     private val scope = CoroutineScope(Dispatchers.Main)
     
     private var llmInference: LlmInference? = null
     private var llamaCppBackend: LlamaCppBackend? = null
+    private var openClawBackend: OpenClawBackend? = null
     private var isInitializing = false
     private var isDownloading = false
     private var isGenerating = false
@@ -30,19 +32,28 @@ class AICoreClient(private val context: Context) {
 
     private fun initializeLlm() {
         if (isInitializing || llmInference != null || llamaCppBackend?.isReady == true) return
+
+        val modelConfig = prefs.selectedModelConfig
+
+        // OpenClaw: no download needed, just configure
+        if (modelConfig.backend == ModelConfig.Backend.OPENCLAW) {
+            openClawBackend = OpenClawBackend(encryptedPrefs)
+            Log.d(TAG, "OpenClaw backend configured")
+            return
+        }
+
         isInitializing = true
 
         scope.launch(Dispatchers.IO) {
             try {
-                val modelConfig = prefs.selectedModelConfig
-                // Use external storage to avoid filling up the limited internal app data partition (avoiding ENOSPC)
+                // Use external storage to avoid filling up the limited internal app data partition
                 val destDir = context.getExternalFilesDir(null) ?: context.filesDir
                 val modelFile = java.io.File(destDir, modelConfig.fileName)
                 
                 // Redownload if corrupt, partial, or empty
                 if (!modelFile.exists() || modelFile.length() < modelConfig.minFileSize) {
                     if (modelFile.exists()) {
-                        modelFile.delete() // Clean up the corrupted/partial file
+                        modelFile.delete()
                     }
                     if (isUnmeteredNetwork()) {
                         downloadModel(modelFile)
@@ -99,7 +110,7 @@ class AICoreClient(private val context: Context) {
      * Returns whether the model is loaded and ready for inference.
      */
     fun isModelReady(): Boolean {
-        return llmInference != null || llamaCppBackend?.isReady == true
+        return llmInference != null || llamaCppBackend?.isReady == true || openClawBackend?.isReady == true
     }
 
     /**
@@ -107,6 +118,7 @@ class AICoreClient(private val context: Context) {
      */
     fun getStatusText(): String {
         return when {
+            openClawBackend?.isReady == true -> "🌐 OpenClaw"
             isModelReady() -> {
                 val timeStr = if (modelLoadTimeMs > 0) " (${modelLoadTimeMs / 1000.0}s)" else ""
                 "✅ Ready$timeStr"
@@ -153,14 +165,23 @@ class AICoreClient(private val context: Context) {
      */
     fun switchModel() {
         unloadModel()
-        isInitializing = false  // Reset flag so we don't get blocked
+        isInitializing = false
 
         val modelConfig = prefs.selectedModelConfig
+
+        // OpenClaw: no download, just configure
+        if (modelConfig.backend == ModelConfig.Backend.OPENCLAW) {
+            openClawBackend = OpenClawBackend(encryptedPrefs)
+            Log.d(TAG, "Switched to OpenClaw backend")
+            return
+        }
+
+        openClawBackend = null  // Clear remote backend when switching to local
+
         val destDir = context.getExternalFilesDir(null) ?: context.filesDir
         val modelFile = java.io.File(destDir, modelConfig.fileName)
 
         if (modelFile.exists() && modelFile.length() > modelConfig.minFileSize / 2) {
-            // Model file exists, just load it
             scope.launch(Dispatchers.IO) {
                 try {
                     isInitializing = true
@@ -172,7 +193,6 @@ class AICoreClient(private val context: Context) {
                 }
             }
         } else {
-            // Model file doesn't exist, download it
             Log.d(TAG, "Model file not found for ${modelConfig.displayName}, starting download...")
             startDownloadExplicitly()
         }
@@ -187,6 +207,8 @@ class AICoreClient(private val context: Context) {
             llmInference = null
             llamaCppBackend?.close()
             llamaCppBackend = null
+            openClawBackend?.close()
+            openClawBackend = null
             Log.d(TAG, "Model successfully unloaded from RAM.")
         } catch (e: Exception) {
             Log.e(TAG, "Error unloading model", e)
@@ -313,7 +335,7 @@ class AICoreClient(private val context: Context) {
         val currentLlm = llmInference
         val currentLlama = llamaCppBackend
         
-        if (currentLlm == null && currentLlama?.isReady != true) {
+        if (currentLlm == null && currentLlama?.isReady != true && openClawBackend?.isReady != true) {
             if (isDownloading) {
                 callback.onError(Exception("Downloading LLM... $downloadProgress% complete. Please wait."))
             } else if (isInitializing) {
@@ -353,7 +375,22 @@ class AICoreClient(private val context: Context) {
             }
 
             // Route to the active backend
-            if (currentLlama?.isReady == true) {
+            val currentOpenClaw = openClawBackend
+            if (currentOpenClaw?.isReady == true) {
+                isGenerating = true
+                currentOpenClaw.generateResponse(finalPrompt, object : InferenceBackend.ResponseCallback {
+                    override fun onSuccess(response: String, generationTimeMs: Long) {
+                        val durationSecs = generationTimeMs / 1000.0
+                        val formatted = response + "\n\n[OpenClaw: " + String.format("%.1f", durationSecs) + "s]"
+                        callback.onSuccess(formatted)
+                        isGenerating = false
+                    }
+                    override fun onError(t: Throwable) {
+                        callback.onError(t)
+                        isGenerating = false
+                    }
+                })
+            } else if (currentLlama?.isReady == true) {
                 isGenerating = true
                 currentLlama.generateResponse(finalPrompt, object : InferenceBackend.ResponseCallback {
                     override fun onSuccess(response: String, generationTimeMs: Long) {

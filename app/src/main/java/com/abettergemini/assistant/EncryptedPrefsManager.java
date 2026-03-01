@@ -53,4 +53,30 @@ public class EncryptedPrefsManager {
     public String getFamilyMembers() {
         return sharedPreferences.getString("user_family", "");
     }
+
+    // === OpenClaw Remote API ===
+
+    public void saveOpenClawUrl(String url) {
+        sharedPreferences.edit().putString("openclaw_url", url).apply();
+    }
+
+    public String getOpenClawUrl() {
+        return sharedPreferences.getString("openclaw_url", "");
+    }
+
+    public void saveOpenClawApiKey(String key) {
+        sharedPreferences.edit().putString("openclaw_api_key", key).apply();
+    }
+
+    public String getOpenClawApiKey() {
+        return sharedPreferences.getString("openclaw_api_key", "");
+    }
+
+    public void saveOpenClawModel(String model) {
+        sharedPreferences.edit().putString("openclaw_model", model).apply();
+    }
+
+    public String getOpenClawModel() {
+        return sharedPreferences.getString("openclaw_model", "");
+    }
 }

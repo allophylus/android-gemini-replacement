@@ -329,7 +329,10 @@ public class MainActivity extends Activity {
         // Card 4: Memory Vault
         layout.addView(createMemoryCard());
 
-        // Card 5: Advanced
+        // Card 5: OpenClaw Remote
+        layout.addView(createOpenClawCard());
+
+        // Card 6: Advanced
         layout.addView(createAdvancedCard());
 
         scroll.addView(layout);
@@ -361,7 +364,7 @@ public class MainActivity extends Activity {
         TextView modelInfo = new TextView(this);
         ModelConfig currentConfig = ModelConfig.findByName(current);
         modelInfo.setText(currentConfig.description + "\n" + 
-                (currentConfig.backend == ModelConfig.Backend.LLAMA_CPP ? "Engine: llama.cpp" : "Engine: MediaPipe") +
+                getEngineLabel(currentConfig) +
                 " • " + currentConfig.sizeLabel);
         modelInfo.setTextColor(theme.textDim());
         modelInfo.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
@@ -374,7 +377,7 @@ public class MainActivity extends Activity {
                 String oldModel = prefs.getSelectedModel();
                 prefs.setSelectedModel(newModel);
                 modelInfo.setText(models[pos].description + "\n" +
-                        (models[pos].backend == ModelConfig.Backend.LLAMA_CPP ? "Engine: llama.cpp" : "Engine: MediaPipe") +
+                        getEngineLabel(models[pos]) +
                         " • " + models[pos].sizeLabel);
                 if (!newModel.equals(oldModel)) {
                     aiClient.switchModel();
@@ -478,6 +481,130 @@ public class MainActivity extends Activity {
                 v -> encryptedPrefs.saveUserDob(v)));
         card.addView(createMemoryInput("Family / Pets", encryptedPrefs.getFamilyMembers(),
                 v -> encryptedPrefs.saveFamilyMembers(v)));
+
+        return card;
+    }
+
+    private String getEngineLabel(ModelConfig config) {
+        switch (config.backend) {
+            case LLAMA_CPP: return "Engine: llama.cpp";
+            case OPENCLAW: return "Engine: OpenClaw (remote)";
+            default: return "Engine: MediaPipe";
+        }
+    }
+
+    private View createOpenClawCard() {
+        LinearLayout card = createCard("\uD83C\uDF10  OpenClaw Remote");
+
+        // Server URL
+        TextView urlLabel = new TextView(this);
+        urlLabel.setText("Server URL");
+        urlLabel.setTextColor(theme.textDim());
+        urlLabel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        card.addView(urlLabel);
+
+        EditText urlInput = new EditText(this);
+        urlInput.setHint("https://your-server.com");
+        urlInput.setText(encryptedPrefs.getOpenClawUrl());
+        urlInput.setTextColor(theme.text());
+        urlInput.setHintTextColor(theme.textDim());
+        urlInput.setSingleLine(true);
+        urlInput.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        card.addView(urlInput);
+
+        // API Key
+        TextView keyLabel = new TextView(this);
+        keyLabel.setText("API Key");
+        keyLabel.setTextColor(theme.textDim());
+        keyLabel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        keyLabel.setPadding(0, dp(8), 0, 0);
+        card.addView(keyLabel);
+
+        EditText keyInput = new EditText(this);
+        keyInput.setHint("sk-...");
+        String existingKey = encryptedPrefs.getOpenClawApiKey();
+        keyInput.setText(existingKey.isEmpty() ? "" : "••••••••" + existingKey.substring(Math.max(0, existingKey.length() - 4)));
+        keyInput.setTextColor(theme.text());
+        keyInput.setHintTextColor(theme.textDim());
+        keyInput.setSingleLine(true);
+        keyInput.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        keyInput.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        card.addView(keyInput);
+
+        // Model Name
+        TextView modelLabel = new TextView(this);
+        modelLabel.setText("Model Name (optional)");
+        modelLabel.setTextColor(theme.textDim());
+        modelLabel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        modelLabel.setPadding(0, dp(8), 0, 0);
+        card.addView(modelLabel);
+
+        EditText modelInput = new EditText(this);
+        modelInput.setHint("e.g. gpt-4, llama-3, default");
+        modelInput.setText(encryptedPrefs.getOpenClawModel());
+        modelInput.setTextColor(theme.text());
+        modelInput.setHintTextColor(theme.textDim());
+        modelInput.setSingleLine(true);
+        modelInput.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        card.addView(modelInput);
+
+        // Status text
+        TextView statusLabel = new TextView(this);
+        statusLabel.setTextColor(theme.textDim());
+        statusLabel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+        statusLabel.setPadding(0, dp(4), 0, 0);
+        card.addView(statusLabel);
+
+        // Save button
+        TextView saveBtn = createActionButton("Save & Connect");
+        saveBtn.setOnClickListener(v -> {
+            String url = urlInput.getText().toString().trim();
+            String key = keyInput.getText().toString().trim();
+            String model = modelInput.getText().toString().trim();
+
+            // Don't save the masked key
+            if (!key.startsWith("••")) {
+                encryptedPrefs.saveOpenClawApiKey(key);
+            }
+            encryptedPrefs.saveOpenClawUrl(url);
+            encryptedPrefs.saveOpenClawModel(model);
+
+            statusLabel.setText("✅ Saved. Select 'OpenClaw (Remote)' in model picker to use.");
+            statusLabel.setTextColor(0xFF4CAF50);
+        });
+        card.addView(saveBtn);
+
+        // Test button
+        TextView testBtn = createActionButton("Test Connection");
+        testBtn.setOnClickListener(v -> {
+            statusLabel.setText("⏳ Testing connection...");
+            statusLabel.setTextColor(theme.textDim());
+
+            new Thread(() -> {
+                try {
+                    // Save first
+                    String url = urlInput.getText().toString().trim();
+                    String key = keyInput.getText().toString().trim();
+                    if (!key.startsWith("••")) {
+                        encryptedPrefs.saveOpenClawApiKey(key);
+                    }
+                    encryptedPrefs.saveOpenClawUrl(url);
+
+                    OpenClawBackend testBackend = new OpenClawBackend(encryptedPrefs);
+                    java.util.List<String> models = testBackend.testConnection();
+                    runOnUiThread(() -> {
+                        statusLabel.setText("✅ Connected! Models: " + String.join(", ", models));
+                        statusLabel.setTextColor(0xFF4CAF50);
+                    });
+                } catch (Exception e) {
+                    runOnUiThread(() -> {
+                        statusLabel.setText("❌ " + e.getMessage());
+                        statusLabel.setTextColor(0xFFFF5252);
+                    });
+                }
+            }).start();
+        });
+        card.addView(testBtn);
 
         return card;
     }

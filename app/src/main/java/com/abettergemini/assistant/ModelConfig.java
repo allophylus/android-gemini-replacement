@@ -8,7 +8,8 @@ public class ModelConfig {
 
     public enum Backend {
         MEDIAPIPE,  // TFLite via MediaPipe LlmInference
-        LLAMA_CPP   // GGUF via llama.cpp JNI
+        LLAMA_CPP,  // GGUF via llama.cpp JNI
+        OPENCLAW    // Remote via OpenAI-compatible API
     }
 
     public final String displayName;
@@ -38,16 +39,30 @@ public class ModelConfig {
      */
     public String getFormattedName() {
         String vision = hasVision ? " 👁️" : "";
-        String eng = backend == Backend.LLAMA_CPP ? " [llama.cpp]" : " [MediaPipe]";
+        String eng;
+        switch (backend) {
+            case LLAMA_CPP: eng = " [llama.cpp]"; break;
+            case OPENCLAW: eng = " [remote]"; break;
+            default: eng = " [MediaPipe]"; break;
+        }
         return displayName + vision + eng + " " + sizeLabel;
     }
 
     /**
      * Returns the full list of models. Public GGUF models listed first.
-     * Gemma (MediaPipe) models require HuggingFace login for download.
      */
     public static ModelConfig[] getAvailableModels() {
         return new ModelConfig[]{
+                // ===== Remote Models =====
+                new ModelConfig(
+                        "OpenClaw (Remote)",
+                        "", // no file needed
+                        "", // no download URL
+                        0L,
+                        "Connect to your OpenClaw server. Requires API key.",
+                        Backend.OPENCLAW, true, "☁️ Cloud"
+                ),
+
                 // ===== llama.cpp Models (GGUF) — Public Downloads =====
                 new ModelConfig(
                         "Qwen2-VL 2B",
