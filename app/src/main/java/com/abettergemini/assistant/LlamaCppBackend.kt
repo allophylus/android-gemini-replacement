@@ -55,7 +55,7 @@ class LlamaCppBackend(private val context: Context) : InferenceBackend {
                 return false
             }
 
-            contextPtr = nativeCreateContext(modelPtr, 2048)
+            contextPtr = nativeCreateContext(modelPtr, 1024)
             if (contextPtr == 0L) {
                 Log.e(TAG, "Failed to create context")
                 nativeFreeModel(modelPtr)
@@ -80,7 +80,7 @@ class LlamaCppBackend(private val context: Context) : InferenceBackend {
         scope.launch {
             try {
                 val startTime = System.currentTimeMillis()
-                val response = nativeGenerate(contextPtr, modelPtr, prompt, 512)
+                val response = nativeGenerate(contextPtr, modelPtr, prompt, 256)
                 val elapsed = System.currentTimeMillis() - startTime
 
                 launch(Dispatchers.Main) {

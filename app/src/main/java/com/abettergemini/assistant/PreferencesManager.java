@@ -169,12 +169,8 @@ public class PreferencesManager {
             sb.append("Your current mood is ").append(mood).append(". Let this influence your tone. ");
         }
 
-        // Tool Use Instructions
-        sb.append("\nTOOLS AVAILABLE: You have special abilities. ");
-        sb.append("To launch an app on the user's device, include [LAUNCH:app name] in your response (e.g. [LAUNCH:YouTube]). ");
-        sb.append("To search the web for information, include [SEARCH:query] in your response (e.g. [SEARCH:best pizza recipe]). ");
-        sb.append("Always provide a natural language response alongside any tool tag. ");
-        sb.append("Only use tools when the user clearly asks to open an app or needs current web information you don't know.");
+        // Tool Use Instructions (kept short to reduce prompt tokens)
+        sb.append("\nTools: [LAUNCH:app name] to open apps, [SEARCH:query] to search web. Only use when asked.");
 
         return sb.toString();
     }
