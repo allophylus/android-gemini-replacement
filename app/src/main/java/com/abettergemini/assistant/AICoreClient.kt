@@ -324,18 +324,23 @@ class AICoreClient(private val context: Context) {
             return
         }
 
+        // Build prompt in ChatML format (supported by Qwen2-VL, Phi-3.5, Gemma)
         val promptBuilder = StringBuilder()
+        promptBuilder.append("<|im_start|>system\n")
         promptBuilder.append(prefs.generateSystemPrompt())
-        promptBuilder.append("\n\n")
+        promptBuilder.append("<|im_end|>\n")
 
         if (!screenContext.isNullOrEmpty()) {
-            promptBuilder.append("CURRENT SCREEN CONTEXT:\n")
-            promptBuilder.append(screenContext)
-            promptBuilder.append("\n\n")
+            promptBuilder.append("<|im_start|>user\n")
+            promptBuilder.append("[Screen context: ").append(screenContext).append("]\n")
+            promptBuilder.append(userPrompt)
+            promptBuilder.append("<|im_end|>\n")
+        } else {
+            promptBuilder.append("<|im_start|>user\n")
+            promptBuilder.append(userPrompt)
+            promptBuilder.append("<|im_end|>\n")
         }
-
-        promptBuilder.append("USER: ")
-        promptBuilder.append(userPrompt)
+        promptBuilder.append("<|im_start|>assistant\n")
         val finalPrompt = promptBuilder.toString()
 
         scope.launch(Dispatchers.IO) {

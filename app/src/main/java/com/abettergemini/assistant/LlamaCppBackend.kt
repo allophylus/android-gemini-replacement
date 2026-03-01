@@ -79,6 +79,8 @@ class LlamaCppBackend(private val context: Context) : InferenceBackend {
 
         scope.launch {
             try {
+                // Reset context before each generation to clear KV cache
+                resetContext()
                 val startTime = System.currentTimeMillis()
                 val response = nativeGenerate(contextPtr, modelPtr, prompt, 256)
                 val elapsed = System.currentTimeMillis() - startTime
@@ -109,5 +111,20 @@ class LlamaCppBackend(private val context: Context) : InferenceBackend {
             modelPtr = 0
         }
         Log.d(TAG, "llama.cpp model unloaded from RAM")
+    }
+
+    /**
+     * Recreate the context to clear the KV cache between generations.
+     */
+    private fun resetContext() {
+        if (contextPtr != 0L) {
+            nativeFreeContext(contextPtr)
+        }
+        contextPtr = nativeCreateContext(modelPtr, 1024)
+        if (contextPtr == 0L) {
+            Log.e(TAG, "Failed to recreate context")
+        } else {
+            Log.d(TAG, "Context reset (KV cache cleared)")
+        }
     }
 }
