@@ -345,7 +345,7 @@ public class MainActivity extends Activity {
         modelInfo.setText(currentConfig.description + "\n" + 
                 (currentConfig.backend == ModelConfig.Backend.LLAMA_CPP ? "Engine: llama.cpp" : "Engine: MediaPipe") +
                 " • " + currentConfig.sizeLabel);
-        modelInfo.setTextColor(CLR_TEXT_DIM);
+        modelInfo.setTextColor(theme.textDim());
         modelInfo.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
         modelInfo.setPadding(0, dp(4), 0, dp(8));
 
@@ -485,7 +485,7 @@ public class MainActivity extends Activity {
         // About
         TextView about = new TextView(this);
         about.setText("\nMate — local-first, privacy-focused AI.\nAll inference runs 100% on-device.");
-        about.setTextColor(CLR_TEXT_DIM);
+        about.setTextColor(theme.textDim());
         about.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
         about.setPadding(0, dp(8), 0, 0);
         card.addView(about);
@@ -688,7 +688,7 @@ public class MainActivity extends Activity {
         // Show typing indicator
         TextView typingView = new TextView(this);
         typingView.setText("Mate is thinking...");
-        typingView.setTextColor(CLR_TEXT_DIM);
+        typingView.setTextColor(theme.textDim());
         typingView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
         typingView.setPadding(dp(16), dp(8), dp(16), dp(8));
         chatHistory.addView(typingView);
